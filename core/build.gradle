@@ -1,3 +1,8 @@
+/*
+ * You may only use this file in accordance with the terms and conditions
+ * outlined in the accompanying LICENSE file.
+ */
+
 apply plugin: "java"
 
 sourceCompatibility = 1.7
