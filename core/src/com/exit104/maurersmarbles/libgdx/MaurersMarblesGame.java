@@ -11,6 +11,8 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
+import com.exit104.maurersmarbles.Game;
+
 public class MaurersMarblesGame extends ApplicationAdapter {
 
   SpriteBatch batch;
@@ -18,8 +20,13 @@ public class MaurersMarblesGame extends ApplicationAdapter {
 
   @Override
   public void create() {
+
     batch = new SpriteBatch();
     img = new Texture("badlogic.jpg");
+
+    Game game = new Game(4);
+    game.play();
+
   }
 
   @Override

@@ -3,6 +3,9 @@
 <module rename-to="html">
   <inherits name='com.badlogic.gdx.backends.gdx_backends_gwt' />
   <inherits name='com.badlogic.gdx.physics.box2d.box2d-gwt' />
+  <inherits name='com.exit104.maurersmarbles' />
+  <inherits name="com.google.common.base.Base"/>
+  <inherits name="com.google.common.collect.Collect"/>
   <inherits name='MaurersMarblesGame' />
   <entry-point class='com.exit104.maurersmarbles.libgdx.client.HtmlLauncher' />
   <set-configuration-property name='xsiframe.failIfScriptTag' value='FALSE'/>
