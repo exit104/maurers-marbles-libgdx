@@ -1,47 +1,32 @@
 /*
- * You may only use this file in accordance with the terms and conditions
- * outlined in the accompanying LICENSE file.
+* You may only use this file in accordance with the terms and conditions
+* outlined in the accompanying LICENSE file.
  */
 
 package com.exit104.maurersmarbles.libgdx;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
-import com.exit104.maurersmarbles.Game;
+import com.exit104.maurersmarbles.libgdx.screens.SplashStageScreen;
 
-public class MaurersMarblesGame extends ApplicationAdapter {
+/**
+ *
+ * @author Daniel Uppenkamp
+ * @since 1.0.0
+ */
+public class MaurersMarblesGame extends com.badlogic.gdx.Game {
 
-  SpriteBatch batch;
-  Texture img;
+  /**
+   * Creates a new MaurersMarblesGame.
+   */
+  public MaurersMarblesGame() {
+    // do nothing
+  }
 
   @Override
   public void create() {
-
-    batch = new SpriteBatch();
-    img = new Texture("badlogic.jpg");
-
-    Game game = new Game(4);
-    game.play();
-
-  }
-
-  @Override
-  public void render() {
-    Gdx.gl.glClearColor(1, 0, 0, 1);
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-    batch.begin();
-    batch.draw(img, 0, 0);
-    batch.end();
-  }
-
-  @Override
-  public void dispose() {
-    batch.dispose();
-    img.dispose();
+    Gdx.graphics.setContinuousRendering(false);
+    this.setScreen(new SplashStageScreen(this));
   }
 
 }
