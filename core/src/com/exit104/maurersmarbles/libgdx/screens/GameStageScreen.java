@@ -35,6 +35,7 @@ import com.exit104.maurersmarbles.PlaySelector;
 import com.exit104.maurersmarbles.Player;
 import com.exit104.maurersmarbles.event.Event;
 import com.exit104.maurersmarbles.event.EventListener;
+import com.exit104.maurersmarbles.event.ExecutedPlayGameEvent;
 import com.exit104.maurersmarbles.event.ExitedStateGameEvent;
 import com.exit104.maurersmarbles.event.MovedMarbleGameEvent;
 import com.exit104.maurersmarbles.libgdx.MaurersMarblesGame;
@@ -57,8 +58,10 @@ public class GameStageScreen extends StageScreen implements EventListener {
   protected final transient GameStats gameStats;
   protected final transient Group boardGroup = new Group();
   protected final transient Image boardBackgroundImage;
+  protected final transient Image discardImage;
   protected final transient Image[] spaceImages;
   protected final transient Image[][] marbleImages;
+  protected final transient Label discardLabel;
   protected final transient Label[] spaceLabels;
   protected final transient List<Event> events = new ArrayList<>();
 
@@ -69,8 +72,9 @@ public class GameStageScreen extends StageScreen implements EventListener {
     @Override
     public void setAvailablePlays(Set<Play> plays) {
       super.setAvailablePlays(plays);
-      this.plays = plays;
-      waitForUserInput = true;
+      setSelectedPlay(plays.iterator().next());
+      //this.plays = plays;
+      //waitForUserInput = true;
     }
 
   }
@@ -134,6 +138,15 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     marbleImages = new Image[game.getNumberOfPlayers()][4];
     for (int i = 0; i < game.getNumberOfPlayers(); i++) {
+
+      spaceImages[game.getBoard().getSafeBoardIndex(i)].setColor(colors[i]);
+      for (int boardIndex : game.getBoard().getHomeBoardIndexes(i)) {
+        spaceImages[boardIndex].setColor(colors[i]);
+      }
+      for (int boardIndex : game.getBoard().getStartBoardIndexes(i)) {
+        spaceImages[boardIndex].setColor(colors[i]);
+      }
+
       for (int j = 0; j < 4; j++) {
 
         marbleImages[i][j] = new Image(texture);
@@ -164,6 +177,12 @@ public class GameStageScreen extends StageScreen implements EventListener {
       }
     }
 
+    discardImage = new Image(texture);
+    discardImage.setColor(Color.WHITE);
+    discardLabel = new Label("AC", new LabelStyle(bitmapFont, Color.GOLD));
+    boardGroup.addActor(discardImage);
+    boardGroup.addActor(discardLabel);
+
     // start the game
     game.advance();
 
@@ -172,6 +191,10 @@ public class GameStageScreen extends StageScreen implements EventListener {
   @Override
   public void handleEvent(Event event) {
 
+    if (event instanceof ExecutedPlayGameEvent) {
+      discardLabel.setText(((ExecutedPlayGameEvent) event).getPlay().getCard().toString());
+      Gdx.graphics.requestRendering();
+    }
     if (event instanceof ExitedStateGameEvent) {
 
       SequenceAction sequenceAction = new SequenceAction();
@@ -268,6 +291,13 @@ public class GameStageScreen extends StageScreen implements EventListener {
             rectangle.getWidth() * boardGroup.getWidth(), marbleHeight);
       }
     }
+
+    com.exit104.maurersmarbles.Rectangle rectangle = boardLayout.getBoundsForDiscardPile();
+    float discardPileHeight = rectangle.getHeight() * boardGroup.getHeight();
+    discardImage.setPosition(rectangle.getX() * boardGroup.getWidth(),
+        (1.0f - rectangle.getY()) * boardGroup.getHeight() - discardPileHeight);
+    discardImage.setSize(rectangle.getWidth() * boardGroup.getWidth(), discardPileHeight);
+    discardLabel.setPosition(discardImage.getX(), discardImage.getY());
 
     stage.getViewport().update(width, height);
 
