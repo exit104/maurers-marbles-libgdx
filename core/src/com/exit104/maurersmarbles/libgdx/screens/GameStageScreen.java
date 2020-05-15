@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -24,6 +25,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 import com.exit104.maurersmarbles.BoardLayout;
+import com.exit104.maurersmarbles.Card;
+import com.exit104.maurersmarbles.CardDeck;
 import com.exit104.maurersmarbles.Game;
 import com.exit104.maurersmarbles.Game.State;
 import com.exit104.maurersmarbles.GameStats;
@@ -32,16 +35,20 @@ import com.exit104.maurersmarbles.Marble;
 import com.exit104.maurersmarbles.Play;
 import com.exit104.maurersmarbles.PlaySelector;
 import com.exit104.maurersmarbles.Player;
+import com.exit104.maurersmarbles.Rectangle;
+import com.exit104.maurersmarbles.event.DealtCardGameEvent;
 import com.exit104.maurersmarbles.event.Event;
 import com.exit104.maurersmarbles.event.EventListener;
-import com.exit104.maurersmarbles.event.ExecutedPlayGameEvent;
 import com.exit104.maurersmarbles.event.ExitedStateGameEvent;
 import com.exit104.maurersmarbles.event.MovedMarbleGameEvent;
+import com.exit104.maurersmarbles.event.PlayedCardGameEvent;
 import com.exit104.maurersmarbles.libgdx.MaurersMarblesGame;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  *
@@ -56,11 +63,10 @@ public class GameStageScreen extends StageScreen implements EventListener {
   protected final transient Game game;
   protected final transient GameStats gameStats;
   protected final transient Group boardGroup = new Group();
+  protected final transient Map<String, Group> cardsMap = new TreeMap<>();
   protected final transient Image boardBackgroundImage;
-  protected final transient Image discardImage;
   protected final transient Image[] spaceImages;
   protected final transient Image[][] marbleImages;
-  protected final transient Label discardLabel;
   protected final transient Label[] spaceLabels;
   protected final transient List<Event> events = new ArrayList<>();
 
@@ -116,7 +122,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
       spaceImages[i].setColor(0.5f, 0.5f, 0.5f, 1);
       boardGroup.addActor(spaceImages[i]);
       spaceLabels[i] = new Label(String.valueOf(i), new LabelStyle(bitmapFont, Color.GOLD));
-      boardGroup.addActor(spaceLabels[i]);
+      //boardGroup.addActor(spaceLabels[i]);
     }
 
     // TODO Determine colors for 4, 6, 8, 10, and 12 players
@@ -161,7 +167,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
               if (waitForUserInput) {
                 waitForUserInput = false;
                 UserPlaySelector userPlaySelector
-                      = (UserPlaySelector) game.getPlayers().get(0).getPlaySelector();
+                    = (UserPlaySelector) game.getPlayers().get(0).getPlaySelector();
                 userPlaySelector.setSelectedPlay(userPlaySelector.plays.iterator().next());
                 userPlaySelector.plays = null;
                 game.advance();
@@ -175,52 +181,74 @@ public class GameStageScreen extends StageScreen implements EventListener {
       }
     }
 
-    discardImage = new Image(texture);
-    discardImage.setColor(Color.WHITE);
-    discardLabel = new Label("", new LabelStyle(bitmapFont, Color.GOLD));
-    boardGroup.addActor(discardImage);
-    boardGroup.addActor(discardLabel);
-
-    // start the game
-    game.advance();
+    for (int i = 0; i < CardDeck.NUMBER_OF_CARDS_IN_FULL_DECK; i++) {
+      Card card = game.getCardDeck().getUndealtCards().get(i);
+      Image image = new Image(texture);
+      Label label = new Label(card.toString(),
+          new LabelStyle(bitmapFont, Color.GOLD));
+      Group group = new Group();
+      group.addActor(image);
+      group.addActor(label);
+      group.setVisible(false);
+      cardsMap.put(card.toString(), group);
+      boardGroup.addActor(group);
+    }
 
   }
 
   @Override
   public void handleEvent(Event event) {
 
-    System.out.printf("%s\n", event);
-
-    if (event instanceof ExecutedPlayGameEvent) {
-      discardLabel.setText(((ExecutedPlayGameEvent) event).getPlay().getCard().toString());
-      Gdx.graphics.requestRendering();
-    }
     if (event instanceof ExitedStateGameEvent) {
 
       SequenceAction sequenceAction = new SequenceAction();
 
       switch (((ExitedStateGameEvent) event).getState()) {
 
-        case DETERMINE_DEALER: {
-
-          RunnableAction runnableAction = new RunnableAction();
-          runnableAction.setRunnable(new Runnable() {
-            @Override
-            public void run() {
-              game.advance();
-            }
-          });
-          sequenceAction.addAction(runnableAction);
-
-          break;
-
-        }
+        case DETERMINE_DEALER:
+        // falls through
         case DEAL_CARDS: {
 
+          for (Event e : events) {
+
+            if (e instanceof DealtCardGameEvent) {
+
+              Card card = ((DealtCardGameEvent) e).getCard();
+              Group group = cardsMap.get(card.toString());
+
+              Rectangle rectangleFrom = boardLayout.getBoundsForBoardIndex(game.getBoard()
+                  .getSafeBoardIndex(((DealtCardGameEvent) e).getDealerPlayerNumber()));
+              float fromX = rectangleFrom.getX() * boardGroup.getWidth();
+              float fromY = (1.0f - rectangleFrom.getY()) * boardGroup.getHeight();
+
+              Rectangle rectangleTo = boardLayout.getBoundsForBoardIndex(game.getBoard()
+                  .getHomeMinBoardIndex(((DealtCardGameEvent) e).getRecipientPlayerNumber()) + 1);
+              float toX = (rectangleTo.getX() + (rectangleTo.getWidth() / 2.0f))
+                  * boardGroup.getWidth() - (group.getWidth() / 2.0f);
+              float toY = (1.0f - (rectangleTo.getY() + (rectangleTo.getHeight() / 2.0f)))
+                  * boardGroup.getHeight() - (group.getHeight() / 2.0f);
+
+              group.setPosition(fromX, fromY);
+              group.toFront();
+              group.setVisible(true);
+              MoveToAction moveToAction = Actions.action(MoveToAction.class);
+              moveToAction.setPosition(toX, toY);
+              moveToAction.setDuration(((ExitedStateGameEvent) event).getState()
+                  == State.DETERMINE_DEALER ? 0.5f : 0.1f);
+              moveToAction.setActor(group);
+              sequenceAction.addAction(moveToAction);
+
+            }
+
+          }
+
           RunnableAction runnableAction = new RunnableAction();
           runnableAction.setRunnable(new Runnable() {
             @Override
             public void run() {
+              for (Group group : cardsMap.values()) {
+                group.setVisible(false);
+              }
               game.advance();
             }
           });
@@ -231,29 +259,60 @@ public class GameStageScreen extends StageScreen implements EventListener {
         }
         case PLAYER_TURN: {
 
-          for (Event event1 : events) {
-            if (event1 instanceof MovedMarbleGameEvent) {
-              MovedMarbleGameEvent movedMarbleGameEvent = (MovedMarbleGameEvent) event1;
-              com.exit104.maurersmarbles.Rectangle rectangle = boardLayout.getBoundsForMarble(
-                    movedMarbleGameEvent.getNewBoardIndex());
-              MoveToAction moveToAction = Actions.action(MoveToAction.class);
-              moveToAction.setPosition(rectangle.getX() * boardGroup.getWidth(),
-                    (1.0f - rectangle.getY()) * boardGroup.getHeight()
-                    - rectangle.getHeight() * boardGroup.getHeight());
-              moveToAction.setDuration(0.01f);
-              moveToAction.setActor(
-                    marbleImages[movedMarbleGameEvent.getPlayerNumber()][movedMarbleGameEvent.getMarbleNumber()]);
-              sequenceAction.addAction(moveToAction);
-            }
-          }
-          events.clear();
+          for (Event e : events) {
 
-          if (((ExitedStateGameEvent) event).getState() == State.GAME_OVER) {
-            maurersMarblesGame.setScreen(new GameOverStageScreen(maurersMarblesGame, gameStats));
-          } else if (((ExitedStateGameEvent) event).getState() == State.PLAYER_TURN
-                && waitForUserInput) {
+            if (e instanceof PlayedCardGameEvent) {
+
+              Card card = ((PlayedCardGameEvent) e).getCard();
+              Group group = cardsMap.get(card.toString());
+
+              Rectangle rectangleFrom = boardLayout.getBoundsForBoardIndex(game.getBoard()
+                  .getSafeBoardIndex(((PlayedCardGameEvent) e).getPlayerNumber()));
+              float fromX = rectangleFrom.getX() * boardGroup.getWidth();
+              float fromY = (1.0f - rectangleFrom.getY()) * boardGroup.getHeight();
+
+              Rectangle rectangleTo = boardLayout.getBoundsForDiscardPile();
+              float toX = rectangleTo.getX() * boardGroup.getWidth();
+              float toY = (1.0f - rectangleTo.getY()) * boardGroup.getHeight()
+                  - rectangleTo.getHeight() * boardGroup.getHeight();
+
+              group.setPosition(fromX, fromY);
+              group.toFront();
+              group.setVisible(true);
+              MoveToAction moveToAction = Actions.action(MoveToAction.class);
+              moveToAction.setPosition(toX, toY);
+              moveToAction.setDuration(0.5f);
+              moveToAction.setActor(group);
+              sequenceAction.addAction(moveToAction);
+
+            } else if (e instanceof MovedMarbleGameEvent) {
+
+              MovedMarbleGameEvent movedMarbleGameEvent = (MovedMarbleGameEvent) e;
+
+              Rectangle rectangle = boardLayout.getBoundsForMarble(
+                  movedMarbleGameEvent.getNewBoardIndex());
+              float toX = rectangle.getX() * boardGroup.getWidth();
+              float toY = (1.0f - rectangle.getY()) * boardGroup.getHeight()
+                  - rectangle.getHeight() * boardGroup.getHeight();
+
+              MoveToAction moveToAction = Actions.action(MoveToAction.class);
+              moveToAction.setPosition(toX, toY);
+              moveToAction.setDuration(0.5f);
+              moveToAction.setActor(marbleImages[movedMarbleGameEvent
+                  .getPlayerNumber()][movedMarbleGameEvent.getMarbleNumber()]);
+              sequenceAction.addAction(moveToAction);
+
+            }
+
+          }
+
+          if (((ExitedStateGameEvent) event).getState() == State.PLAYER_TURN
+              && waitForUserInput) {
+
             System.out.printf("Waiting for user input...\n");
+
           } else {
+
             RunnableAction runnableAction = new RunnableAction();
             runnableAction.setRunnable(new Runnable() {
               @Override
@@ -262,11 +321,22 @@ public class GameStageScreen extends StageScreen implements EventListener {
               }
             });
             sequenceAction.addAction(runnableAction);
+
           }
 
           break;
         }
+
+        case GAME_OVER: {
+
+          maurersMarblesGame.setScreen(new GameOverStageScreen(maurersMarblesGame, gameStats));
+          break;
+
+        }
+
       }
+
+      events.clear();
 
       stage.addAction(sequenceAction);
       Gdx.graphics.requestRendering();
@@ -302,16 +372,16 @@ public class GameStageScreen extends StageScreen implements EventListener {
       size = width;
     }
 
-    boardGroup.setSize(size, size);
-    boardGroup.setPosition(-width / 2.0f,
-          (height / 2.0f) - boardGroup.getHeight());
+    boardGroup.setSize(size * 0.9f, size * 0.9f);
+    boardGroup.setPosition(-boardGroup.getWidth() / 2.0f,
+        (size * 0.95f / 2.0f) - boardGroup.getHeight());
     boardBackgroundImage.setSize(boardGroup.getWidth(), boardGroup.getHeight());
 
     for (int i = 0; i < spaceImages.length; i++) {
       com.exit104.maurersmarbles.Rectangle rectangle = boardLayout.getBoundsForSpace(i);
       float spaceHeight = rectangle.getHeight() * boardGroup.getHeight();
       spaceImages[i].setPosition(rectangle.getX() * boardGroup.getWidth(),
-            (1.0f - rectangle.getY()) * boardGroup.getHeight() - spaceHeight);
+          (1.0f - rectangle.getY()) * boardGroup.getHeight() - spaceHeight);
       spaceImages[i].setSize(rectangle.getWidth() * boardGroup.getWidth(), spaceHeight);
       spaceLabels[i].setPosition(spaceImages[i].getX(), spaceImages[i].getY());
     }
@@ -319,23 +389,24 @@ public class GameStageScreen extends StageScreen implements EventListener {
     for (Player player : game.getPlayers()) {
       for (Marble marble : player.getMarbles()) {
         com.exit104.maurersmarbles.Rectangle rectangle = boardLayout.getBoundsForMarble(
-              marble.getBoardIndex());
+            marble.getBoardIndex());
         float marbleHeight = rectangle.getHeight() * boardGroup.getHeight();
         marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setPosition(
-              rectangle.getX() * boardGroup.getWidth(),
-              (1.0f - rectangle.getY()) * boardGroup.getHeight() - marbleHeight);
+            rectangle.getX() * boardGroup.getWidth(),
+            (1.0f - rectangle.getY()) * boardGroup.getHeight() - marbleHeight);
         marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setSize(
-              rectangle.getWidth() * boardGroup.getWidth(), marbleHeight);
+            rectangle.getWidth() * boardGroup.getWidth(), marbleHeight);
       }
     }
 
     com.exit104.maurersmarbles.Rectangle rectangle = boardLayout.getBoundsForDiscardPile();
-    discardImage.setPosition(rectangle.getX() * boardGroup.getWidth(),
-          (1.0f - rectangle.getY()) * boardGroup.getHeight()
-          - rectangle.getHeight() * boardGroup.getHeight());
-    discardImage.setSize(rectangle.getWidth() * boardGroup.getWidth(),
+    for (Map.Entry<String, Group> entry : cardsMap.entrySet()) {
+      entry.getValue().setSize(rectangle.getWidth() * boardGroup.getWidth(),
           rectangle.getHeight() * boardGroup.getHeight());
-    discardLabel.setPosition(discardImage.getX(), discardImage.getY());
+      for (Actor actor : entry.getValue().getChildren()) {
+        actor.setSize(entry.getValue().getWidth(), entry.getValue().getHeight());
+      }
+    }
 
     stage.getViewport().update(width, height);
 
@@ -344,6 +415,17 @@ public class GameStageScreen extends StageScreen implements EventListener {
   @Override
   public void resume() {
     // TODO
+  }
+
+  @Override
+  public void show() {
+
+    super.show();
+
+    // TODO need to account for leaving screen and coming back
+    // start the game
+    game.advance();
+
   }
 
 }
