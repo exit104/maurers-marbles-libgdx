@@ -97,7 +97,6 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     boardLayout = new GridBoardLayout(game.getBoard());
 
-    boardGroup.setOrigin(Align.center);
     stage.addActor(boardGroup);
 
     Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
@@ -191,6 +190,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
   @Override
   public void handleEvent(Event event) {
 
+    System.out.printf("%s\n", event);
+
     if (event instanceof ExecutedPlayGameEvent) {
       discardLabel.setText(((ExecutedPlayGameEvent) event).getPlay().getCard().toString());
       Gdx.graphics.requestRendering();
@@ -198,37 +199,74 @@ public class GameStageScreen extends StageScreen implements EventListener {
     if (event instanceof ExitedStateGameEvent) {
 
       SequenceAction sequenceAction = new SequenceAction();
-      for (Event event1 : events) {
-        if (event1 instanceof MovedMarbleGameEvent) {
-          MovedMarbleGameEvent movedMarbleGameEvent = (MovedMarbleGameEvent) event1;
-          com.exit104.maurersmarbles.Rectangle rectangle = boardLayout.getBoundsForMarble(
-              movedMarbleGameEvent.getNewBoardIndex());
-          MoveToAction moveToAction = Actions.action(MoveToAction.class);
-          moveToAction.setPosition(rectangle.getX() * boardGroup.getWidth(),
-              (1.0f - rectangle.getY()) * boardGroup.getHeight()
-              - rectangle.getHeight() * boardGroup.getHeight());
-          moveToAction.setDuration(0.01f);
-          moveToAction.setActor(
-              marbleImages[movedMarbleGameEvent.getPlayerNumber()][movedMarbleGameEvent.getMarbleNumber()]);
-          sequenceAction.addAction(moveToAction);
-        }
-      }
-      events.clear();
 
-      if (((ExitedStateGameEvent) event).getState() == State.GAME_OVER) {
-        maurersMarblesGame.setScreen(new GameOverStageScreen(maurersMarblesGame, gameStats));
-      } else if (((ExitedStateGameEvent) event).getState() == State.PLAYER_TURN
-          && waitForUserInput) {
-        System.out.printf("Waiting for user input...\n");
-      } else {
-        RunnableAction runnableAction = new RunnableAction();
-        runnableAction.setRunnable(new Runnable() {
-          @Override
-          public void run() {
-            game.advance();
+      switch (((ExitedStateGameEvent) event).getState()) {
+
+        case DETERMINE_DEALER: {
+
+          RunnableAction runnableAction = new RunnableAction();
+          runnableAction.setRunnable(new Runnable() {
+            @Override
+            public void run() {
+              game.advance();
+            }
+          });
+          sequenceAction.addAction(runnableAction);
+
+          break;
+
+        }
+        case DEAL_CARDS: {
+
+          RunnableAction runnableAction = new RunnableAction();
+          runnableAction.setRunnable(new Runnable() {
+            @Override
+            public void run() {
+              game.advance();
+            }
+          });
+          sequenceAction.addAction(runnableAction);
+
+          break;
+
+        }
+        case PLAYER_TURN: {
+
+          for (Event event1 : events) {
+            if (event1 instanceof MovedMarbleGameEvent) {
+              MovedMarbleGameEvent movedMarbleGameEvent = (MovedMarbleGameEvent) event1;
+              com.exit104.maurersmarbles.Rectangle rectangle = boardLayout.getBoundsForMarble(
+                  movedMarbleGameEvent.getNewBoardIndex());
+              MoveToAction moveToAction = Actions.action(MoveToAction.class);
+              moveToAction.setPosition(rectangle.getX() * boardGroup.getWidth(),
+                  (1.0f - rectangle.getY()) * boardGroup.getHeight()
+                  - rectangle.getHeight() * boardGroup.getHeight());
+              moveToAction.setDuration(0.01f);
+              moveToAction.setActor(
+                  marbleImages[movedMarbleGameEvent.getPlayerNumber()][movedMarbleGameEvent.getMarbleNumber()]);
+              sequenceAction.addAction(moveToAction);
+            }
           }
-        });
-        sequenceAction.addAction(runnableAction);
+          events.clear();
+
+          if (((ExitedStateGameEvent) event).getState() == State.GAME_OVER) {
+            maurersMarblesGame.setScreen(new GameOverStageScreen(maurersMarblesGame, gameStats));
+          } else if (((ExitedStateGameEvent) event).getState() == State.PLAYER_TURN
+              && waitForUserInput) {
+            System.out.printf("Waiting for user input...\n");
+          } else {
+            RunnableAction runnableAction = new RunnableAction();
+            runnableAction.setRunnable(new Runnable() {
+              @Override
+              public void run() {
+                game.advance();
+              }
+            });
+            sequenceAction.addAction(runnableAction);
+          }
+
+          break;
+        }
       }
 
       stage.addAction(sequenceAction);
@@ -266,7 +304,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     }
 
     boardGroup.setSize(size, size);
-    boardGroup.setPosition(-boardGroup.getWidth() / 2.0f,
+    boardGroup.setPosition(-width / 2.0f,
         (height / 2.0f) - boardGroup.getHeight());
     boardBackgroundImage.setSize(boardGroup.getWidth(), boardGroup.getHeight());
 
