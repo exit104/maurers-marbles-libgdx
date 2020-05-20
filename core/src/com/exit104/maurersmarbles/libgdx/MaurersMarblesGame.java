@@ -1,6 +1,6 @@
 /*
-* You may only use this file in accordance with the terms and conditions
-* outlined in the accompanying LICENSE file.
+ * You may only use this file in accordance with the terms and conditions
+ * outlined in the accompanying LICENSE file.
  */
 
 package com.exit104.maurersmarbles.libgdx;

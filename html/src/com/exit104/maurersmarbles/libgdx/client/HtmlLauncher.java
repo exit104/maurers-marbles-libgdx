@@ -8,6 +8,7 @@ package com.exit104.maurersmarbles.libgdx.client;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.backends.gwt.GwtApplication;
 import com.badlogic.gdx.backends.gwt.GwtApplicationConfiguration;
+
 import com.exit104.maurersmarbles.libgdx.MaurersMarblesGame;
 
 public class HtmlLauncher extends GwtApplication {

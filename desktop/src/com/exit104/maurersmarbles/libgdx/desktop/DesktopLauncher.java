@@ -7,6 +7,7 @@ package com.exit104.maurersmarbles.libgdx.desktop;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
+
 import com.exit104.maurersmarbles.libgdx.MaurersMarblesGame;
 
 public class DesktopLauncher {
