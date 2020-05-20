@@ -16,6 +16,8 @@ import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.actions.MoveToAction;
+import com.badlogic.gdx.scenes.scene2d.actions.ParallelAction;
+import com.badlogic.gdx.scenes.scene2d.actions.RotateToAction;
 import com.badlogic.gdx.scenes.scene2d.actions.RunnableAction;
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -466,12 +468,25 @@ public class GameStageScreen extends StageScreen implements EventListener {
               float toY = (1.0f - rectangle.getY()) * boardGroup.getHeight()
                   - rectangle.getHeight() * boardGroup.getHeight();
 
+              ParallelAction parallelAction = new ParallelAction();
+
               MoveToAction moveToAction = Actions.action(MoveToAction.class);
               moveToAction.setPosition(toX, toY);
               moveToAction.setDuration(0.5f);
               moveToAction.setActor(marbleImages[movedMarbleGameEvent
                   .getPlayerNumber()][movedMarbleGameEvent.getMarbleNumber()]);
-              sequenceAction.addAction(moveToAction);
+              parallelAction.addAction(moveToAction);
+
+              RotateToAction rotateToAction = Actions.rotateTo(270.0f
+                  - (float) (boardLayout.getAngleForBoardIndex(
+                      movedMarbleGameEvent.getNewBoardIndex()) * 180.0 / Math.PI));
+              rotateToAction.setUseShortestDirection(true);
+              rotateToAction.setDuration(0.5f);
+              rotateToAction.setActor(marbleImages[movedMarbleGameEvent
+                  .getPlayerNumber()][movedMarbleGameEvent.getMarbleNumber()]);
+              parallelAction.addAction(rotateToAction);
+
+              sequenceAction.addAction(parallelAction);
 
             }
 
@@ -583,6 +598,9 @@ public class GameStageScreen extends StageScreen implements EventListener {
           (1.0f - rectangle.getY()) * boardGroup.getHeight() - spaceHeight);
       spaceImages[i].setSize(rectangle.getWidth() * boardGroup.getWidth(), spaceHeight);
       spaceLabels[i].setPosition(spaceImages[i].getX(), spaceImages[i].getY());
+      spaceImages[i].setOrigin(Align.center);
+      spaceImages[i].setRotation(270.0f - (float) (boardLayout.getAngleForBoardIndex(i)
+          * 180.0 / Math.PI));
     }
 
     for (Player player : game.getPlayers()) {
@@ -590,11 +608,15 @@ public class GameStageScreen extends StageScreen implements EventListener {
         com.exit104.maurersmarbles.Rectangle rectangle = boardLayout.getBoundsForMarble(
             marble.getBoardIndex());
         float marbleHeight = rectangle.getHeight() * boardGroup.getHeight();
+        marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setSize(
+            rectangle.getWidth() * boardGroup.getWidth(), marbleHeight);
         marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setPosition(
             rectangle.getX() * boardGroup.getWidth(),
             (1.0f - rectangle.getY()) * boardGroup.getHeight() - marbleHeight);
-        marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setSize(
-            rectangle.getWidth() * boardGroup.getWidth(), marbleHeight);
+        marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setOrigin(Align.center);
+        marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setRotation(270.0f
+            - (float) (boardLayout.getAngleForBoardIndex(marble.getBoardIndex())
+            * 180.0 / Math.PI));
       }
     }
 
