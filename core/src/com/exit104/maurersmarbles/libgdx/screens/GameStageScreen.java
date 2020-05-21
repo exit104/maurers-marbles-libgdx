@@ -591,12 +591,12 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
                 @Override
                 public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
-                  group.setY(group.getY() + group.getHeight() * 0.10f);
+                  //group.setY(group.getY() + group.getHeight() * 0.10f);
                 }
 
                 @Override
                 public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
-                  group.setY(group.getY() - group.getHeight() * 0.10f);
+                  //group.setY(group.getY() - group.getHeight() * 0.10f);
                 }
 
                 @Override
