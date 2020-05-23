@@ -28,11 +28,11 @@ public class SplashStageScreen extends StageScreen {
   /**
    * The amount of time to display the splash screen (not including fade in/out).
    */
-  protected static final float DISPLAY_DURATION = 2.0f;
+  protected static final float DISPLAY_DURATION = 0.0f;
   /**
    * The amount of time to fade in/out.
    */
-  protected static final float FADE_DURATION = 0.75f;
+  protected static final float FADE_DURATION = 0.0f;
 
   /**
    * Creates a new SplashStageScreen.

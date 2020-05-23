@@ -46,6 +46,7 @@ public abstract class StageScreen implements Screen {
     // TODO Preconditons?
     this.maurersMarblesGame = maurersMarblesGame;
 
+    // TODO what viewport are we doing to use?
     viewport = new ScreenViewport();
     stage = new Stage(viewport);
 
