@@ -521,8 +521,6 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
         if (exitedStateGameEvent.getState() == State.PLAYER_TURN && waitForUserInput) {
 
-          System.out.printf("Waiting for user input...\n");
-
           updateCards();
 
           for (Card card : game.getPlayers().get(0).getCards()) {
