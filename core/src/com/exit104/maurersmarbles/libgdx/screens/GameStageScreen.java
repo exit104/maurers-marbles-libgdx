@@ -289,7 +289,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   protected void clickedCard(Card card) {
-    if (waitForUserInput) {
+    if (waitForUserInput && game.getPlayers().get(0).getCards().contains(card)) {
       setSelectedCard(card);
     }
   }
