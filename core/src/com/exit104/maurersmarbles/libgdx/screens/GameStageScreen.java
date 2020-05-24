@@ -122,6 +122,10 @@ public class GameStageScreen extends StageScreen implements EventListener {
    */
   protected final transient Image[][] marbleImages;
   /**
+   * The user player number.
+   */
+  protected static final int USER_PLAYER_NUMBER = 0;
+  /**
    * The split value that is currently selected by the user.
    */
   protected transient int selectedSplitValue = UserPlay.NO_SPLIT_VALUE;
@@ -188,7 +192,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     // create the game and initialize the players
     game = new Game(numberOfPlayers);
     // TODO add ability to be all AI players
-    game.getPlayers().get(0).setPlaySelector(new UserPlaySelector());
+    game.getPlayers().get(USER_PLAYER_NUMBER).setPlaySelector(new UserPlaySelector());
     for (int i = 1; i < game.getNumberOfPlayers(); i++) {
       // TODO add the ability to set the AI difficulty
       game.getPlayers().get(i).setPlaySelector(new ScoreBasedPlaySelector(game, i));
@@ -289,7 +293,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   protected void clickedCard(Card card) {
-    if (waitForUserInput && game.getPlayers().get(0).getCards().contains(card)) {
+    if (waitForUserInput && game.getPlayers().get(USER_PLAYER_NUMBER).getCards().contains(card)) {
       setSelectedCard(card);
     }
   }
@@ -302,8 +306,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     if (selectedCard != NO_CARD) {
 
-      UserPlaySelector userPlaySelector = (UserPlaySelector) game.getPlayers().get(0)
-          .getPlaySelector();
+      UserPlaySelector userPlaySelector = (UserPlaySelector) game.getPlayers()
+          .get(USER_PLAYER_NUMBER).getPlaySelector();
 
       UserPlay userPlay;
       if (selectedCard.getRank().equals(Card.Rank.JACK)
@@ -523,7 +527,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
           updateCards();
 
-          for (Card card : game.getPlayers().get(0).getCards()) {
+          for (Card card : game.getPlayers().get(USER_PLAYER_NUMBER).getCards()) {
             final Card finalCard = card;
             Image image = cardImages.get(card.toString());
             image.clearListeners();
@@ -594,7 +598,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     // reset all cards to not be highlighted
     // TODO Can this be just the player cards?
-    for (Card c : game.getPlayers().get(0).getCards()) {
+    for (Card c : game.getPlayers().get(USER_PLAYER_NUMBER).getCards()) {
       cardImages.get(c.toString()).setColor(Color.WHITE);
     }
 
