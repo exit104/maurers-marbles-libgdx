@@ -651,7 +651,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
         float y = centerY - (i * image.getWidth() - (image.getWidth() * playerCards.size() / 2.0f)
             + image.getWidth() / 2.0f) * (float) Math.sin(angle + Math.PI / 2.0f);*/
         // compact hand
-        float visible = 0.3f;
+        float visible = 0.75f;
         float width = image.getWidth();
         if (playerCards.size() > 1) {
           width += image.getWidth() * visible * (playerCards.size() - 1);
