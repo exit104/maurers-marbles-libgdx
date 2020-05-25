@@ -643,10 +643,10 @@ public class GameStageScreen extends StageScreen implements EventListener {
         Card card = playerCards.get(i);
 
         Image image = cardImages.get(card.toString());
-        float centerX = ((0.5f * boardGroup.getWidth()) + (image.getHeight() / 2.0f))
+        float centerX = ((0.49f * boardGroup.getWidth()) + (image.getHeight() / 2.0f))
             * (float) Math.cos(angle + Math.PI) + (boardGroup.getWidth() / 2.0f)
             - (image.getWidth() / 2.0f);
-        float centerY = ((-0.5f * boardGroup.getHeight()) - (image.getHeight() / 2.0f))
+        float centerY = ((-0.49f * boardGroup.getHeight()) - (image.getHeight() / 2.0f))
             * (float) Math.sin(angle + Math.PI) + (boardGroup.getHeight() / 2.0f)
             - (image.getHeight() / 2.0f);
 
