@@ -239,9 +239,9 @@ public class GameStageScreen extends StageScreen implements EventListener {
     // create the images for the marbles
     marbleImages = new Image[numberOfPlayers][Game.NUMBER_OF_MARBLES_PER_PLAYER];
     for (int playerNumber = 0; playerNumber < numberOfPlayers; playerNumber++) {
-      for (int marbleNumber = 0; marbleNumber < 4; marbleNumber++) {
+      for (int marbleNumber = 0; marbleNumber < Game.NUMBER_OF_MARBLES_PER_PLAYER; marbleNumber++) {
         marbleImages[playerNumber][marbleNumber] = new Image(
-            maurersMarblesGame.getAssetManager().get("board_space.png", Texture.class));
+            maurersMarblesGame.getAssetManager().get("marble.png", Texture.class));
         marbleImages[playerNumber][marbleNumber].setColor(colors[playerNumber]);
         boardGroup.addActor(marbleImages[playerNumber][marbleNumber]);
         final int finalPlayerNumber = playerNumber;
