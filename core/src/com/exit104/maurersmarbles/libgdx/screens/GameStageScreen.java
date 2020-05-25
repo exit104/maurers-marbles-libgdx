@@ -79,6 +79,10 @@ public class GameStageScreen extends StageScreen implements EventListener {
    */
   protected transient Card selectedCard = NO_CARD;
   /**
+   * The percent of the card width to overlap the player cards.
+   */
+  protected static final float CARD_OVERLAP = 0.25f;
+  /**
    * The length of time (in seconds) to deal a card.
    */
   protected static final float DURATION_DEAL_CARD = 0.1f;
@@ -582,12 +586,13 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     if (selectedCard != NO_CARD && selectedCard.getRank().equals(Card.Rank.SEVEN)) {
 
-      // TODO move to above the seven card
-      float x = boardGroup.getWidth();
+      Image selectedCardImage = cardImages.get(selectedCard.toString());
+      float y = selectedCardImage.getY() + selectedCardImage.getHeight();
+      float x = selectedCardImage.getX() - 3 * selectedCardImage.getWidth() * (1.0f - CARD_OVERLAP);
       for (Image image : splitCardImages) {
-        image.setPosition(x, 0);
+        image.setPosition(x, y);
         image.setVisible(true);
-        x += 40;
+        x += selectedCardImage.getWidth() * (1.0f - CARD_OVERLAP);
       }
 
     } else {
@@ -645,21 +650,16 @@ public class GameStageScreen extends StageScreen implements EventListener {
             * (float) Math.sin(angle + Math.PI) + (boardGroup.getHeight() / 2.0f)
             - (image.getHeight() / 2.0f);
 
-        // horizontal hand
-        /*float x = centerX + (i * image.getWidth() - (image.getWidth() * playerCards.size() / 2.0f)
-            + image.getWidth() / 2.0f) * (float) Math.cos(angle + Math.PI / 2.0f);
-        float y = centerY - (i * image.getWidth() - (image.getWidth() * playerCards.size() / 2.0f)
-            + image.getWidth() / 2.0f) * (float) Math.sin(angle + Math.PI / 2.0f);*/
-        // compact hand
-        float visible = 0.75f;
         float width = image.getWidth();
         if (playerCards.size() > 1) {
-          width += image.getWidth() * visible * (playerCards.size() - 1);
+          width += image.getWidth() * (1.0f - CARD_OVERLAP) * (playerCards.size() - 1);
         }
         float x = centerX + (((image.getWidth() / 2.0f) - (width / 2.0f)
-            + (i * image.getWidth() * visible)) * (float) Math.cos(angle + Math.PI / 2.0f));
+            + (i * image.getWidth() * (1.0f - CARD_OVERLAP)))
+            * (float) Math.cos(angle + Math.PI / 2.0f));
         float y = centerY - (((image.getWidth() / 2.0f) - (width / 2.0f)
-            + (i * image.getWidth() * visible)) * (float) Math.sin(angle + Math.PI / 2.0f));
+            + (i * image.getWidth() * (1.0f - CARD_OVERLAP)))
+            * (float) Math.sin(angle + Math.PI / 2.0f));
 
         image.setColor(playerNumber == 0 ? Color.WHITE : Color.FIREBRICK);
         image.setPosition(x, y);
