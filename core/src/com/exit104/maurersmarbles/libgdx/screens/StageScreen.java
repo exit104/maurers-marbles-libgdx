@@ -9,8 +9,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.utils.viewport.ExtendViewport;
 
 import com.exit104.maurersmarbles.libgdx.MaurersMarblesGame;
 
@@ -34,7 +33,7 @@ public abstract class StageScreen implements Screen {
   /**
    * The viewport for the stage.
    */
-  protected final transient Viewport viewport;
+  protected final transient ExtendViewport viewport;
 
   /**
    * Creates a new StageScreen.
@@ -46,8 +45,8 @@ public abstract class StageScreen implements Screen {
     // TODO Preconditons?
     this.maurersMarblesGame = maurersMarblesGame;
 
-    // TODO what viewport are we doing to use?
-    viewport = new ScreenViewport();
+    // TODO make width/height constants
+    viewport = new ExtendViewport(800, 480);
     stage = new Stage(viewport);
 
     ((OrthographicCamera) stage.getCamera()).setToOrtho(false, 0.0f, 0.0f);
