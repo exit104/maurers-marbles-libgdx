@@ -248,7 +248,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     // create the images for the board spaces
     boardSpaceImages = new Image[game.getBoard().getNumberOfPlayableSpaces()];
     for (int i = 0; i < boardSpaceImages.length; i++) {
-      boardSpaceImages[i] = new Image(maurersMarblesGame.getAssetManager().get("arrow.png",
+      boardSpaceImages[i] = new Image(maurersMarblesGame.getAssetManager().get("board_space.png",
           Texture.class));
       boardSpaceImages[i].setColor(0.5f, 0.5f, 0.5f, 1);
       boardGroup.addActor(boardSpaceImages[i]);
@@ -462,13 +462,16 @@ public class GameStageScreen extends StageScreen implements EventListener {
     float toY = (1.0f - rectangle.getY()) * boardGroup.getHeight()
         - rectangle.getHeight() * boardGroup.getHeight();
 
+    Image image = marbleImages[movedMarbleGameEvent.getPlayerNumber()][movedMarbleGameEvent
+        .getMarbleNumber()];
+    image.toFront();
+
     ParallelAction parallelAction = new ParallelAction();
 
     MoveToAction moveToAction = Actions.action(MoveToAction.class);
     moveToAction.setPosition(toX, toY);
     moveToAction.setDuration(DURATION_MOVE_MARBLE);
-    moveToAction.setActor(marbleImages[movedMarbleGameEvent
-        .getPlayerNumber()][movedMarbleGameEvent.getMarbleNumber()]);
+    moveToAction.setActor(image);
     parallelAction.addAction(moveToAction);
 
     RotateToAction rotateToAction = Actions.rotateTo(270.0f
@@ -476,8 +479,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
             movedMarbleGameEvent.getNewBoardIndex()) * 180.0 / Math.PI));
     rotateToAction.setUseShortestDirection(true);
     rotateToAction.setDuration(DURATION_MOVE_MARBLE);
-    rotateToAction.setActor(marbleImages[movedMarbleGameEvent
-        .getPlayerNumber()][movedMarbleGameEvent.getMarbleNumber()]);
+    rotateToAction.setActor(image);
     parallelAction.addAction(rotateToAction);
 
     return parallelAction;
@@ -495,7 +497,6 @@ public class GameStageScreen extends StageScreen implements EventListener {
         - rectangleTo.getHeight() * boardGroup.getHeight() + boardGroup.getY();
 
     // TODO should this be here or in the action?
-    image.setColor(Color.WHITE);
     image.toFront();
     image.setVisible(true);
 
@@ -723,14 +724,9 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   public void updateCardActors() {
 
-    float maxCardHeight = (playerGroups[0].getHeight() - playerLabels[0].getHeight()) * 0.95f;
     float maxCardWidth = playerGroups[0].getWidth() * 0.95f;
     float cardWidth = maxCardWidth / (1 + (4 * (1.0f - CARD_OVERLAP)));
     float cardHeight = cardWidth * (Card.HEIGHT / Card.WIDTH);
-    if (cardHeight > maxCardHeight) {
-      cardHeight = maxCardHeight;
-      cardWidth = cardHeight * (Card.WIDTH / Card.HEIGHT);
-    }
 
     // update the player cards
     for (int playerNumber = 0; playerNumber < game.getNumberOfPlayers(); playerNumber++) {
@@ -749,9 +745,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
         float x = playerGroups[playerNumber].getX()
             + (playerGroups[playerNumber].getWidth() / 2.0f) - (playerCardsWidth / 2.0f)
             + (cardNumber * image.getWidth() * (1.0f - CARD_OVERLAP));
-        float y = playerGroups[playerNumber].getY()
-            + (playerGroups[playerNumber].getHeight() - playerLabels[playerNumber].getHeight()
-            - image.getHeight()) / 2.0f;
+        float y = playerGroups[playerNumber].getY() + playerGroups[playerNumber].getHeight()
+            - (playerLabels[playerNumber].getHeight()) - cardHeight;
         image.setPosition(x, y);
 
         image.setOrigin(Align.center);
@@ -784,6 +779,22 @@ public class GameStageScreen extends StageScreen implements EventListener {
       image.setSize(cardWidth, cardHeight);
       image.setRotation(0.0f);
       image.setColor(Color.WHITE);
+    }
+
+    // update the depth order of the player actors and cards
+    for (int i = game.getNumberOfTeams(); i < game.getNumberOfPlayers(); i++) {
+      playerGroups[i].toFront();
+      for (Card card : game.getPlayers().get(i).getCards()) {
+        Image image = cardImages.get(card.toString());
+        image.toFront();
+      }
+    }
+    for (int i = game.getNumberOfTeams() - 1; i >= 0; i--) {
+      playerGroups[i].toFront();
+      for (Card card : game.getPlayers().get(i).getCards()) {
+        Image image = cardImages.get(card.toString());
+        image.toFront();
+      }
     }
 
   }
