@@ -53,6 +53,7 @@ import com.exit104.maurersmarbles.event.ShuffledCardDeckGameEvent;
 import com.exit104.maurersmarbles.libgdx.MaurersMarblesGame;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +83,11 @@ public class GameStageScreen extends StageScreen implements EventListener {
    * The user card that is currently selected.
    */
   protected transient Card selectedCard = NO_CARD;
+  /**
+   * The colors for each player. The index into the array is the player number and the value is the
+   * color for that player.
+   */
+  protected static final Color[] PLAYER_COLORS = new Color[12];
   /**
    * The percent of the card width to overlap the player cards.
    */
@@ -206,21 +212,19 @@ public class GameStageScreen extends StageScreen implements EventListener {
     maurersMarblesGame.getAssetManager().load("player_background.png", Texture.class);
     maurersMarblesGame.getAssetManager().finishLoading();
 
-    // TODO Determine colors for 4, 6, 8, 10, and 12 players
-    // TODO keep colors for teams consistent
-    Color[] colors = new Color[12];
-    colors[0] = Color.BLUE;
-    colors[1] = Color.GREEN;
-    colors[2] = Color.RED;
-    colors[3] = Color.YELLOW;
-    colors[4] = Color.BLACK;
-    colors[5] = Color.WHITE;
-    colors[6] = Color.BROWN;
-    colors[7] = Color.GOLDENROD;
-    colors[8] = Color.CORAL;
-    colors[9] = Color.CYAN;
-    colors[10] = Color.PURPLE;
-    colors[11] = Color.LIME;
+    // initialize the player colors
+    PLAYER_COLORS[0] = Color.BLUE;
+    PLAYER_COLORS[1] = Color.RED;
+    PLAYER_COLORS[2] = Color.WHITE;
+    PLAYER_COLORS[3] = Color.GREEN;
+    PLAYER_COLORS[4] = Color.YELLOW;
+    PLAYER_COLORS[5] = Color.MAGENTA;
+    PLAYER_COLORS[6] = Color.NAVY;
+    PLAYER_COLORS[7] = Color.FIREBRICK;
+    PLAYER_COLORS[8] = Color.BLACK;
+    PLAYER_COLORS[9] = Color.FOREST;
+    PLAYER_COLORS[10] = Color.GOLD;
+    PLAYER_COLORS[11] = Color.PURPLE;
 
     // create the game and initialize the players
     game = new Game(numberOfPlayers);
@@ -257,12 +261,12 @@ public class GameStageScreen extends StageScreen implements EventListener {
     // set the colors for the player board spaces
     for (int playerNumber = 0; playerNumber < numberOfPlayers; playerNumber++) {
       boardSpaceImages[game.getBoard().getSafeBoardIndex(playerNumber)].setColor(
-          colors[playerNumber]);
+          getColorForPlayer(playerNumber));
       for (int boardIndex : game.getBoard().getHomeBoardIndexes(playerNumber)) {
-        boardSpaceImages[boardIndex].setColor(colors[playerNumber]);
+        boardSpaceImages[boardIndex].setColor(getColorForPlayer(playerNumber));
       }
       for (int boardIndex : game.getBoard().getStartBoardIndexes(playerNumber)) {
-        boardSpaceImages[boardIndex].setColor(colors[playerNumber]);
+        boardSpaceImages[boardIndex].setColor(getColorForPlayer(playerNumber));
       }
     }
 
@@ -272,7 +276,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
       for (int marbleNumber = 0; marbleNumber < Game.NUMBER_OF_MARBLES_PER_PLAYER; marbleNumber++) {
         marbleImages[playerNumber][marbleNumber] = new Image(
             maurersMarblesGame.getAssetManager().get("marble.png", Texture.class));
-        marbleImages[playerNumber][marbleNumber].setColor(colors[playerNumber]);
+        marbleImages[playerNumber][marbleNumber].setColor(getColorForPlayer(playerNumber));
         boardGroup.addActor(marbleImages[playerNumber][marbleNumber]);
         final int finalPlayerNumber = playerNumber;
         final int finalMarbleNumber = marbleNumber;
@@ -318,16 +322,16 @@ public class GameStageScreen extends StageScreen implements EventListener {
     playerGroups = new Group[numberOfPlayers];
     playerBackgroundImages = new Image[numberOfPlayers];
     playerLabels = new Label[numberOfPlayers];
-    for (int i = 0; i < numberOfPlayers; i++) {
-      playerGroups[i] = new Group();
-      stage.addActor(playerGroups[i]);
-      playerBackgroundImages[i] = new Image(maurersMarblesGame.getAssetManager().get(
+    for (int playerNumber = 0; playerNumber < numberOfPlayers; playerNumber++) {
+      playerGroups[playerNumber] = new Group();
+      stage.addActor(playerGroups[playerNumber]);
+      playerBackgroundImages[playerNumber] = new Image(maurersMarblesGame.getAssetManager().get(
           "player_background.png", Texture.class));
-      playerBackgroundImages[i].setColor(colors[i]);
-      playerGroups[i].addActor(playerBackgroundImages[i]);
-      playerLabels[i] = new Label(" Player " + i, new Label.LabelStyle(new BitmapFont(),
-          Color.GOLD));
-      playerGroups[i].addActor(playerLabels[i]);
+      playerBackgroundImages[playerNumber].setColor(getColorForPlayer(playerNumber));
+      playerGroups[playerNumber].addActor(playerBackgroundImages[playerNumber]);
+      playerLabels[playerNumber] = new Label(" Player " + playerNumber,
+          new Label.LabelStyle(new BitmapFont(), Color.GOLD));
+      playerGroups[playerNumber].addActor(playerLabels[playerNumber]);
     }
 
     mainMenuLabel = new Label("Main Menu", new LabelStyle(new BitmapFont(), Color.GOLD));
@@ -342,12 +346,15 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   protected void clickedCard(Card card) {
+    System.out.printf("clickedCard\n");
     if (waitForUserInput && game.getPlayers().get(USER_PLAYER_NUMBER).getCards().contains(card)) {
       setSelectedCard(card);
     }
   }
 
   protected void clickedMarble(int playerNumber, int marbleNumber) {
+
+    System.out.printf("clickedMarble\n");
 
     if (!waitForUserInput) {
       return;
@@ -395,6 +402,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   protected void clickedSplitCard(int splitValue) {
+    System.out.printf("clickedSplitCard\n");
     if (waitForUserInput) {
       selectedSplitValue = splitValue;
       for (Image image : splitCardImages) {
@@ -403,13 +411,19 @@ public class GameStageScreen extends StageScreen implements EventListener {
     }
   }
 
-  protected Action getActionToDealCard(DealtCardGameEvent dealtCardGameEvent, boolean faceDown) {
+  protected Action getActionToDealCard(DealtCardGameEvent dealtCardGameEvent,
+      final boolean faceDown) {
+
+    System.out.printf("getActionToDealCard\n");
 
     Card card = dealtCardGameEvent.getCard();
-    Image image = cardImages.get(card.toString());
+    final Image image = cardImages.get(card.toString());
 
-    float fromX = playerGroups[dealtCardGameEvent.getDealerPlayerNumber()].getX();
-    float fromY = playerGroups[dealtCardGameEvent.getDealerPlayerNumber()].getY();
+    Rectangle rectangle = boardLayout.getBoundsForDiscardPile();
+    final float fromX = rectangle.getX() * boardGroup.getWidth()
+        - (rectangle.getWidth() * boardGroup.getWidth() / 2.0f) + boardGroup.getX();
+    final float fromY = (1.0f - rectangle.getY()) * boardGroup.getHeight()
+        - rectangle.getHeight() * boardGroup.getHeight() + boardGroup.getY();
 
     Image boardSpaceImage = boardSpaceImages[game.getBoard().getHomeMinBoardIndex(
         dealtCardGameEvent.getRecipientPlayerNumber()) + 1];
@@ -420,21 +434,31 @@ public class GameStageScreen extends StageScreen implements EventListener {
     float toX = stageCoordinates.x - (image.getWidth() / 2.0f);
     float toY = stageCoordinates.y - (image.getHeight() / 2.0f);
 
-    image.toFront();
-    image.setPosition(fromX, fromY);
-    image.setVisible(true);
-
-    if (faceDown) {
-      // TODO need to figure out different image
-      image.setColor(Color.FIREBRICK);
-    }
-
     // apply a minor random rotation
     float toAngle = (float) (Math.random() * 20.0f * 2.0f) - 20.0f;
 
     // apply random x,y offset
     toX += (float) ((Math.random() - 0.5f) * image.getWidth() * 0.25f);
     toY += (float) ((Math.random() - 0.5f) * image.getWidth() * 0.25f);
+
+    SequenceAction sequenceAction = Actions.sequence();
+
+    RunnableAction runnableAction = Actions.run(new Runnable() {
+      @Override
+      public void run() {
+
+        image.toFront();
+
+        if (faceDown) {
+          // TODO need to figure out different image
+          image.setColor(Color.FIREBRICK);
+        } else {
+          image.setColor(Color.WHITE);
+        }
+
+      }
+    });
+    sequenceAction.addAction(runnableAction);
 
     ParallelAction parallelAction = new ParallelAction();
 
@@ -450,11 +474,15 @@ public class GameStageScreen extends StageScreen implements EventListener {
     rotateToAction.setActor(image);
     parallelAction.addAction(rotateToAction);
 
-    return parallelAction;
+    sequenceAction.addAction(parallelAction);
+
+    return sequenceAction;
 
   }
 
   protected Action getActionToMoveMarble(MovedMarbleGameEvent movedMarbleGameEvent) {
+
+    System.out.printf("getActionToMoveMarble\n");
 
     Rectangle rectangle = boardLayout.getBoundsForMarble(
         movedMarbleGameEvent.getNewBoardIndex());
@@ -486,19 +514,38 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   }
 
-  protected Action getActionToPlayCard(PlayedCardGameEvent playedCardGameEvent) {
+  protected Action getActionToPlayCard(PlayedCardGameEvent playedCardGameEvent,
+      final boolean faceDown) {
+
+    System.out.printf("getActionToPlayCard\n");
 
     Card card = playedCardGameEvent.getCard();
     final Image image = cardImages.get(card.toString());
 
     Rectangle rectangleTo = boardLayout.getBoundsForDiscardPile();
-    float toX = rectangleTo.getX() * boardGroup.getWidth() + boardGroup.getX();
+    float toX = rectangleTo.getX() * boardGroup.getWidth()
+        + (rectangleTo.getWidth() * boardGroup.getWidth() / 2.0f) + boardGroup.getX();
     float toY = (1.0f - rectangleTo.getY()) * boardGroup.getHeight()
         - rectangleTo.getHeight() * boardGroup.getHeight() + boardGroup.getY();
 
-    // TODO should this be here or in the action?
-    image.toFront();
-    image.setVisible(true);
+    SequenceAction sequenceAction = Actions.sequence();
+
+    RunnableAction runnableAction = Actions.run(new Runnable() {
+      @Override
+      public void run() {
+
+        image.toFront();
+
+        if (faceDown) {
+          // TODO need to figure out different image
+          image.setColor(Color.FIREBRICK);
+        } else {
+          image.setColor(Color.WHITE);
+        }
+
+      }
+    });
+    sequenceAction.addAction(runnableAction);
 
     ParallelAction parallelAction = new ParallelAction();
 
@@ -520,27 +567,34 @@ public class GameStageScreen extends StageScreen implements EventListener {
     rotateToAction.setActor(image);
     parallelAction.addAction(rotateToAction);
 
-    RunnableAction runnableAction = Actions.run(new Runnable() {
+    sequenceAction.addAction(parallelAction);
+
+    runnableAction = Actions.run(new Runnable() {
       @Override
       public void run() {
         discardPile.add(image);
       }
     });
-
-    SequenceAction sequenceAction = Actions.sequence();
-    sequenceAction.addAction(parallelAction);
     sequenceAction.addAction(runnableAction);
 
     return sequenceAction;
 
   }
 
+  protected final Color getColorForPlayer(int playerNumber) {
+    return PLAYER_COLORS[(playerNumber / game.getNumberOfTeams() * 6)
+        + (playerNumber % game.getNumberOfTeams())];
+  }
+
   protected void handleCannotPlayGameEvent(CannotPlayGameEvent cannotPlayGameEvent) {
+    System.out.printf("handleCannotPlayGameEvent\n");
     cannotPlayPlayerCards.addAll(game.getPlayers().get(
         cannotPlayGameEvent.getPlayerNumber()).getCards());
   }
 
   protected void handleExitedStateGameEvent(ExitedStateGameEvent exitedStateGameEvent) {
+
+    System.out.printf("handleExitedStateGameEvent\n");
 
     SequenceAction sequenceAction = new SequenceAction();
 
@@ -549,8 +603,6 @@ public class GameStageScreen extends StageScreen implements EventListener {
       case DETERMINE_DEALER:
       // falls through
       case DEAL_CARDS: {
-
-        updateCardActors();
 
         for (Event queuedEvent : queuedEvents) {
           if (queuedEvent instanceof DealtCardGameEvent) {
@@ -564,6 +616,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
           @Override
           public void run() {
             updateCardActors();
+            // TODO add animation to move cards to player areas
             game.advance();
           }
         });
@@ -579,14 +632,15 @@ public class GameStageScreen extends StageScreen implements EventListener {
             ParallelAction parallelAction = Actions.parallel();
             for (Card card : cannotPlayPlayerCards) {
               parallelAction.addAction(getActionToPlayCard(new PlayedCardGameEvent(game,
-                  ((CannotPlayGameEvent) queuedEvent).getPlayerNumber(), card)));
+                  ((CannotPlayGameEvent) queuedEvent).getPlayerNumber(), card),
+                  ((CannotPlayGameEvent) queuedEvent).getPlayerNumber() != USER_PLAYER_NUMBER));
             }
             cannotPlayPlayerCards.clear();
             sequenceAction.addAction(parallelAction);
           } else if (queuedEvent instanceof MovedMarbleGameEvent) {
             sequenceAction.addAction(getActionToMoveMarble((MovedMarbleGameEvent) queuedEvent));
           } else if (queuedEvent instanceof PlayedCardGameEvent) {
-            sequenceAction.addAction(getActionToPlayCard((PlayedCardGameEvent) queuedEvent));
+            sequenceAction.addAction(getActionToPlayCard((PlayedCardGameEvent) queuedEvent, false));
           }
         }
 
@@ -641,10 +695,14 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   protected void handleShuffledCardDeckGameEvent(
       ShuffledCardDeckGameEvent shuffledCardDeckGameEvent) {
+    System.out.printf("handleShuffledCardDeckGameEvet\n");
     discardPile.clear();
+    updateCardActors();
   }
 
   public void setSelectedCard(Card card) {
+
+    System.out.printf("setSelectedCard\n");
 
     if (selectedCard == card) {
       resetUserInput();
@@ -677,13 +735,13 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     // update the selected card to be highlighted
     if (selectedCard != NO_CARD) {
-      cardImages.get(selectedCard.toString()).setVisible(true);
       cardImages.get(selectedCard.toString()).setColor(Color.YELLOW);
     }
 
   }
 
   protected void resetUserInput() {
+    System.out.printf("resetUserInput\n");
     setSelectedCard(NO_CARD);
     selectedMarble1 = UserPlay.NO_MARBLE;
     selectedMarble2 = UserPlay.NO_MARBLE;
@@ -691,6 +749,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   public void updateBoardActors() {
+
+    System.out.printf("updateBoardActors\n");
 
     // update the size and position of the group
     boardGroup.setSize(viewport.getMinWorldHeight(), viewport.getMinWorldHeight());
@@ -724,6 +784,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   public void updateCardActors() {
 
+    System.out.printf("updateCardActors\n");
+
     float maxCardWidth = playerGroups[0].getWidth() * 0.95f;
     float cardWidth = maxCardWidth / (1 + (4 * (1.0f - CARD_OVERLAP)));
     float cardHeight = cardWidth * (Card.HEIGHT / Card.WIDTH);
@@ -753,32 +815,39 @@ public class GameStageScreen extends StageScreen implements EventListener {
         image.setRotation(0.0f);
 
         image.setColor(playerNumber == 0 ? Color.WHITE : Color.FIREBRICK);
-        image.setVisible(true);
 
       }
 
     }
 
+    // update the split cards
     for (Image image : splitCardImages) {
       image.setSize(cardWidth, cardHeight);
     }
 
+    // update the discard pile
     Rectangle rectangle = boardLayout.getBoundsForDiscardPile();
     for (Image image : discardPile) {
       image.setSize(rectangle.getWidth() * boardGroup.getWidth(),
           rectangle.getHeight() * boardGroup.getHeight());
-      image.setPosition(rectangle.getX() * boardGroup.getWidth() + boardGroup.getX(),
+      image.setPosition(rectangle.getX() * boardGroup.getWidth()
+          + (rectangle.getWidth() * boardGroup.getWidth() / 2.0f) + boardGroup.getX(),
           (1.0f - rectangle.getY()) * boardGroup.getHeight()
           - rectangle.getHeight() * boardGroup.getHeight() + boardGroup.getY());
+      image.setRotation(0.0f);
     }
 
+    // update the card deck (undealt cards)
     for (Card card : game.getCardDeck().getUndealtCards()) {
       Image image = cardImages.get(card.toString());
-      image.setPosition(playerGroups[game.getCurrentDealer()].getX(),
-          playerGroups[game.getCurrentDealer()].getY());
-      image.setSize(cardWidth, cardHeight);
+      image.setSize(rectangle.getWidth() * boardGroup.getWidth(),
+          rectangle.getHeight() * boardGroup.getHeight());
+      image.setPosition(rectangle.getX() * boardGroup.getWidth()
+          - (rectangle.getWidth() * boardGroup.getWidth() / 2.0f) + boardGroup.getX(),
+          (1.0f - rectangle.getY()) * boardGroup.getHeight()
+          - rectangle.getHeight() * boardGroup.getHeight() + boardGroup.getY());
       image.setRotation(0.0f);
-      image.setColor(Color.WHITE);
+      image.setColor(Color.FIREBRICK);
     }
 
     // update the depth order of the player actors and cards
@@ -800,6 +869,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   public void updateMarbleActors() {
+
+    System.out.printf("updateMarbleActors\n");
 
     for (Player player : game.getPlayers()) {
 
@@ -824,6 +895,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   public void updatePlayerActors() {
+
+    System.out.printf("updatePlayerActors\n");
 
     for (Player player : game.getPlayers()) {
 
@@ -874,6 +947,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
   @Override
   public void pause() {
     // TODO
+    System.out.printf("pause\n");
   }
 
   @Override
@@ -888,8 +962,12 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   }
 
+  boolean firstResize = true;
+
   @Override
   public void resize(int width, int height) {
+
+    System.out.printf("resize\n");
 
     super.resize(width, height);
 
@@ -901,22 +979,29 @@ public class GameStageScreen extends StageScreen implements EventListener {
     updatePlayerActors();
     updateCardActors();
 
+    if (firstResize) {
+      firstResize = false;
+      // start the game
+      game.advance();
+    }
+
   }
 
   @Override
   public void resume() {
     // TODO
+    System.out.printf("resume\n");
   }
 
   @Override
   public void show() {
 
+    System.out.printf("show\n");
+
     super.show();
 
     // TODO need to account for leaving screen and coming back
     // start the game
-    game.advance();
-
   }
 
   protected class UserPlaySelector extends PlaySelector {

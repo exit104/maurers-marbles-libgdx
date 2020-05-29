@@ -73,7 +73,7 @@ public abstract class StageScreen implements Screen {
   public void show() {
     Gdx.input.setInputProcessor(stage);
     // TODO Is the resize needed?
-    resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    //resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
   }
 
 }
