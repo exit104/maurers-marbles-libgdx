@@ -419,12 +419,6 @@ public class GameStageScreen extends StageScreen implements EventListener {
     Card card = dealtCardGameEvent.getCard();
     final Image image = cardImages.get(card.toString());
 
-    Rectangle rectangle = boardLayout.getBoundsForDiscardPile();
-    final float fromX = rectangle.getX() * boardGroup.getWidth()
-        - (rectangle.getWidth() * boardGroup.getWidth() / 2.0f) + boardGroup.getX();
-    final float fromY = (1.0f - rectangle.getY()) * boardGroup.getHeight()
-        - rectangle.getHeight() * boardGroup.getHeight() + boardGroup.getY();
-
     Image boardSpaceImage = boardSpaceImages[game.getBoard().getHomeMinBoardIndex(
         dealtCardGameEvent.getRecipientPlayerNumber()) + 1];
     Vector2 stageCoordinates = boardGroup.localToStageCoordinates(new Vector2(
@@ -522,6 +516,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     Card card = playedCardGameEvent.getCard();
     final Image image = cardImages.get(card.toString());
 
+    // TODO keep logic below or update board layout to have discard pile and deck pile
     Rectangle rectangleTo = boardLayout.getBoundsForDiscardPile();
     float toX = rectangleTo.getX() * boardGroup.getWidth()
         + (rectangleTo.getWidth() * boardGroup.getWidth() / 2.0f) + boardGroup.getX();
