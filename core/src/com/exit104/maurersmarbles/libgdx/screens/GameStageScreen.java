@@ -53,7 +53,6 @@ import com.exit104.maurersmarbles.event.ShuffledCardDeckGameEvent;
 import com.exit104.maurersmarbles.libgdx.MaurersMarblesGame;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +71,10 @@ public class GameStageScreen extends StageScreen implements EventListener {
    */
   protected transient boolean waitForUserInput = false;
   /**
+   * The board actor for the game board.
+   */
+  protected final transient BoardActor boardActor;
+  /**
    * The board layout used to draw the game board.
    */
   protected final transient BoardLayout boardLayout;
@@ -83,6 +86,11 @@ public class GameStageScreen extends StageScreen implements EventListener {
    * The user card that is currently selected.
    */
   protected transient Card selectedCard = NO_CARD;
+  /**
+   * The array of card actors for the split cards (when a seven is split). The index into the array
+   * is the split value - 1 and the value is the card actor for that split card.
+   */
+  protected final transient CardActor[] splitCardActors;
   /**
    * The colors for each player. The index into the array is the player number and the value is the
    * color for that player.
@@ -113,38 +121,6 @@ public class GameStageScreen extends StageScreen implements EventListener {
    */
   protected final transient GameStats gameStats;
   /**
-   * The group used to manage the actors on the game board.
-   */
-  protected final transient Group boardGroup = new Group();
-  /**
-   * The groups used to manage the player display areas.
-   */
-  protected final transient Group[] playerGroups;
-  /**
-   * The image used as the background for the game board.
-   */
-  protected final transient Image boardBackgroundImage;
-  /**
-   * The array of images for the spaces on the board. The index into the array is the board index
-   * and the value is the image for that board space.
-   */
-  protected final transient Image[] boardSpaceImages;
-  /**
-   * The array of images for the player background. The index into the array is the player number
-   * and the value is the image for that player.
-   */
-  protected final transient Image[] playerBackgroundImages;
-  /**
-   * The array of images for the split cards (when a seven is split). The index into the array is
-   * the split value - 1 and the value is the image for that split card.
-   */
-  protected final transient Image[] splitCardImages;
-  /**
-   * The array of images for the marbles. The index into the first array is the player number and
-   * the index into the second array is the image for that marble.
-   */
-  protected final transient Image[][] marbleImages;
-  /**
    * The user player number.
    */
   protected static final int USER_PLAYER_NUMBER = 0;
@@ -152,11 +128,6 @@ public class GameStageScreen extends StageScreen implements EventListener {
    * The split value that is currently selected by the user.
    */
   protected transient int selectedSplitValue = UserPlay.NO_SPLIT_VALUE;
-  /**
-   * The labels for the player names. The index into the array is the player number and the value is
-   * the label for that player.
-   */
-  protected final transient Label[] playerLabels;
   /**
    * The list of cards from the cannot play game event.
    */
@@ -166,10 +137,16 @@ public class GameStageScreen extends StageScreen implements EventListener {
    */
   protected final transient List<Event> queuedEvents = new ArrayList<>();
   /**
-   * The map that contains the images for the cards. The key into the map is the card string
-   * (toString()), and the value is the image for that card.
+   * The map that contains the card actors for the cards. The key into the map is the card string
+   * (toString()), and the value is the card actor for that card.
    */
-  protected final transient Map<String, Image> cardImages = new TreeMap<>();
+  protected final transient Map<String, CardActor> cardActors = new TreeMap<>();
+  /**
+   * The array of marble actors for the marbles. The index into the first array is the player number
+   * and the index into the second array is the marble number and the value is the marble actor for
+   * that marble.
+   */
+  protected final transient MarbleActor[][] marbleActors;
   /**
    * The first marble that is currently selected by the user.
    */
@@ -179,12 +156,18 @@ public class GameStageScreen extends StageScreen implements EventListener {
    */
   protected transient Marble selectedMarble2 = UserPlay.NO_MARBLE;
   /**
-   * The set of card images in the discard pile.
+   * The array of player actors. the index into the array is the player number and the value is the
+   * player actor for that player.
    */
-  protected final transient Set<Image> discardPile = new LinkedHashSet<>();
+  protected final transient PlayerActor[] playerActors;
+  /**
+   * The set of card actors in the discard pile.
+   */
+  protected final transient Set<CardActor> discardPile = new LinkedHashSet<>();
 
-  // debugging
+  // debugging/working
   protected transient Label mainMenuLabel;
+  boolean firstResize = true;
 
   /**
    * Creates a new GameStageScreen.
@@ -239,48 +222,21 @@ public class GameStageScreen extends StageScreen implements EventListener {
     gameStats = new GameStats(game);
     game.addEventListener(this);
 
-    // create the board layout
+    // create the board layout and board actor
     boardLayout = new GridBoardLayout(game.getBoard());
-    stage.addActor(boardGroup);
+    boardActor = new BoardActor();
+    stage.addActor(boardActor);
 
-    // create the image for the board background
-    boardBackgroundImage = new Image(maurersMarblesGame.getAssetManager().get(
-        "board_background.png", Texture.class));
-    boardBackgroundImage.setColor(0.75f, 0.75f, 0.75f, 1);
-    boardGroup.addActor(boardBackgroundImage);
-
-    // create the images for the board spaces
-    boardSpaceImages = new Image[game.getBoard().getNumberOfPlayableSpaces()];
-    for (int i = 0; i < boardSpaceImages.length; i++) {
-      boardSpaceImages[i] = new Image(maurersMarblesGame.getAssetManager().get("board_space.png",
-          Texture.class));
-      boardSpaceImages[i].setColor(0.5f, 0.5f, 0.5f, 1);
-      boardGroup.addActor(boardSpaceImages[i]);
-    }
-
-    // set the colors for the player board spaces
-    for (int playerNumber = 0; playerNumber < numberOfPlayers; playerNumber++) {
-      boardSpaceImages[game.getBoard().getSafeBoardIndex(playerNumber)].setColor(
-          getColorForPlayer(playerNumber));
-      for (int boardIndex : game.getBoard().getHomeBoardIndexes(playerNumber)) {
-        boardSpaceImages[boardIndex].setColor(getColorForPlayer(playerNumber));
-      }
-      for (int boardIndex : game.getBoard().getStartBoardIndexes(playerNumber)) {
-        boardSpaceImages[boardIndex].setColor(getColorForPlayer(playerNumber));
-      }
-    }
-
-    // create the images for the marbles
-    marbleImages = new Image[numberOfPlayers][Game.NUMBER_OF_MARBLES_PER_PLAYER];
+    // create the actors for the marbles
+    marbleActors = new MarbleActor[numberOfPlayers][Game.NUMBER_OF_MARBLES_PER_PLAYER];
     for (int playerNumber = 0; playerNumber < numberOfPlayers; playerNumber++) {
       for (int marbleNumber = 0; marbleNumber < Game.NUMBER_OF_MARBLES_PER_PLAYER; marbleNumber++) {
-        marbleImages[playerNumber][marbleNumber] = new Image(
-            maurersMarblesGame.getAssetManager().get("marble.png", Texture.class));
-        marbleImages[playerNumber][marbleNumber].setColor(getColorForPlayer(playerNumber));
-        boardGroup.addActor(marbleImages[playerNumber][marbleNumber]);
+        MarbleActor marbleActor = new MarbleActor(playerNumber);
+        marbleActors[playerNumber][marbleNumber] = marbleActor;
+        boardActor.addActor(marbleActor);
         final int finalPlayerNumber = playerNumber;
         final int finalMarbleNumber = marbleNumber;
-        marbleImages[playerNumber][marbleNumber].addListener(new ClickListener() {
+        marbleActor.addListener(new ClickListener() {
           @Override
           public void clicked(InputEvent event, float x, float y) {
             clickedMarble(finalPlayerNumber, finalMarbleNumber);
@@ -289,49 +245,39 @@ public class GameStageScreen extends StageScreen implements EventListener {
       }
     }
 
-    // create the images for the cards
+    // create the groups for the cards
     for (int i = 0; i < CardDeck.NUMBER_OF_CARDS_IN_FULL_DECK; i++) {
       Card card = game.getCardDeck().getUndealtCards().get(i);
-      Image image = new Image(maurersMarblesGame.getAssetManager().get("card_"
-          + card.toString().toLowerCase() + ".png", Texture.class));
-      cardImages.put(card.toString(), image);
-      stage.addActor(image);
+      CardActor cardActor = new CardActor(card);
+      cardActors.put(card.toString(), cardActor);
+      stage.addActor(cardActor);
     }
 
-    // create the images for the split cards
-    splitCardImages = new Image[7];
+    // create the actors for the split cards
+    splitCardActors = new CardActor[7];
     int splitValue = 1;
     for (Card.Rank rank : new Card.Rank[]{Card.Rank.ACE, Card.Rank.TWO, Card.Rank.THREE,
       Card.Rank.FOUR, Card.Rank.FIVE, Card.Rank.SIX, Card.Rank.SEVEN}) {
       // TODO need images for split cards
-      Image image = new Image(maurersMarblesGame.getAssetManager().get("card_"
-          + rank.toString().toLowerCase() + "c.png", Texture.class));
-      image.setVisible(false);
+      CardActor cardActor = new CardActor(new Card(rank, Card.Suit.CLUBS));
+      cardActor.setVisible(false);
       final int finalSplitValue = splitValue;
-      image.addListener(new ClickListener() {
+      cardActor.addListener(new ClickListener() {
         @Override
         public void clicked(InputEvent event, float x, float y) {
           clickedSplitCard(finalSplitValue);
         }
       });
-      splitCardImages[splitValue++ - 1] = image;
-      stage.addActor(image);
+      splitCardActors[splitValue++ - 1] = cardActor;
+      stage.addActor(cardActor);
     }
 
-    // create the player display areas
-    playerGroups = new Group[numberOfPlayers];
-    playerBackgroundImages = new Image[numberOfPlayers];
-    playerLabels = new Label[numberOfPlayers];
+    // create the actors for the players
+    playerActors = new PlayerActor[numberOfPlayers];
     for (int playerNumber = 0; playerNumber < numberOfPlayers; playerNumber++) {
-      playerGroups[playerNumber] = new Group();
-      stage.addActor(playerGroups[playerNumber]);
-      playerBackgroundImages[playerNumber] = new Image(maurersMarblesGame.getAssetManager().get(
-          "player_background.png", Texture.class));
-      playerBackgroundImages[playerNumber].setColor(getColorForPlayer(playerNumber));
-      playerGroups[playerNumber].addActor(playerBackgroundImages[playerNumber]);
-      playerLabels[playerNumber] = new Label(" Player " + playerNumber,
-          new Label.LabelStyle(new BitmapFont(), Color.GOLD));
-      playerGroups[playerNumber].addActor(playerLabels[playerNumber]);
+      PlayerActor playerActor = new PlayerActor(playerNumber);
+      playerActors[playerNumber] = playerActor;
+      stage.addActor(playerActor);
     }
 
     mainMenuLabel = new Label("Main Menu", new LabelStyle(new BitmapFont(), Color.GOLD));
@@ -346,15 +292,12 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   protected void clickedCard(Card card) {
-    System.out.printf("clickedCard\n");
     if (waitForUserInput && game.getPlayers().get(USER_PLAYER_NUMBER).getCards().contains(card)) {
       setSelectedCard(card);
     }
   }
 
   protected void clickedMarble(int playerNumber, int marbleNumber) {
-
-    System.out.printf("clickedMarble\n");
 
     if (!waitForUserInput) {
       return;
@@ -402,11 +345,10 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   protected void clickedSplitCard(int splitValue) {
-    System.out.printf("clickedSplitCard\n");
     if (waitForUserInput) {
       selectedSplitValue = splitValue;
-      for (Image image : splitCardImages) {
-        image.setVisible(false);
+      for (CardActor cardActor : splitCardActors) {
+        cardActor.setVisible(false);
       }
     }
   }
@@ -414,42 +356,32 @@ public class GameStageScreen extends StageScreen implements EventListener {
   protected Action getActionToDealCard(DealtCardGameEvent dealtCardGameEvent,
       final boolean faceDown) {
 
-    System.out.printf("getActionToDealCard\n");
-
     Card card = dealtCardGameEvent.getCard();
-    final Image image = cardImages.get(card.toString());
+    final CardActor cardActor = cardActors.get(card.toString());
 
-    Image boardSpaceImage = boardSpaceImages[game.getBoard().getHomeMinBoardIndex(
+    Image boardSpaceImage = boardActor.boardSpaceImages[game.getBoard().getHomeMinBoardIndex(
         dealtCardGameEvent.getRecipientPlayerNumber()) + 1];
-    Vector2 stageCoordinates = boardGroup.localToStageCoordinates(new Vector2(
+    Vector2 stageCoordinates = boardActor.localToStageCoordinates(new Vector2(
         boardSpaceImage.getX() + (boardSpaceImage.getWidth() / 2.0f),
         boardSpaceImage.getY() + (boardSpaceImage.getHeight() / 2.0f)));
 
-    float toX = stageCoordinates.x - (image.getWidth() / 2.0f);
-    float toY = stageCoordinates.y - (image.getHeight() / 2.0f);
+    float toX = stageCoordinates.x - (cardActor.getWidth() / 2.0f);
+    float toY = stageCoordinates.y - (cardActor.getHeight() / 2.0f);
 
     // apply a minor random rotation
     float toAngle = (float) (Math.random() * 20.0f * 2.0f) - 20.0f;
 
     // apply random x,y offset
-    toX += (float) ((Math.random() - 0.5f) * image.getWidth() * 0.25f);
-    toY += (float) ((Math.random() - 0.5f) * image.getWidth() * 0.25f);
+    toX += (float) ((Math.random() - 0.5f) * cardActor.getWidth() * 0.25f);
+    toY += (float) ((Math.random() - 0.5f) * cardActor.getWidth() * 0.25f);
 
     SequenceAction sequenceAction = Actions.sequence();
 
     RunnableAction runnableAction = Actions.run(new Runnable() {
       @Override
       public void run() {
-
-        image.toFront();
-
-        if (faceDown) {
-          // TODO need to figure out different image
-          image.setColor(Color.FIREBRICK);
-        } else {
-          image.setColor(Color.WHITE);
-        }
-
+        cardActor.toFront();
+        cardActor.setFaceDown(faceDown);
       }
     });
     sequenceAction.addAction(runnableAction);
@@ -459,13 +391,13 @@ public class GameStageScreen extends StageScreen implements EventListener {
     MoveToAction moveToAction = Actions.action(MoveToAction.class);
     moveToAction.setPosition(toX, toY);
     moveToAction.setDuration(DURATION_DEAL_CARD);
-    moveToAction.setActor(image);
+    moveToAction.setActor(cardActor);
     parallelAction.addAction(moveToAction);
 
     RotateToAction rotateToAction = Actions.rotateTo(toAngle);
     rotateToAction.setUseShortestDirection(true);
     rotateToAction.setDuration(DURATION_DEAL_CARD);
-    rotateToAction.setActor(image);
+    rotateToAction.setActor(cardActor);
     parallelAction.addAction(rotateToAction);
 
     sequenceAction.addAction(parallelAction);
@@ -476,24 +408,22 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   protected Action getActionToMoveMarble(MovedMarbleGameEvent movedMarbleGameEvent) {
 
-    System.out.printf("getActionToMoveMarble\n");
-
     Rectangle rectangle = boardLayout.getBoundsForMarble(
         movedMarbleGameEvent.getNewBoardIndex());
-    float toX = rectangle.getX() * boardGroup.getWidth();
-    float toY = (1.0f - rectangle.getY()) * boardGroup.getHeight()
-        - rectangle.getHeight() * boardGroup.getHeight();
+    float toX = rectangle.getX() * boardActor.getWidth();
+    float toY = (1.0f - rectangle.getY()) * boardActor.getHeight()
+        - rectangle.getHeight() * boardActor.getHeight();
 
-    Image image = marbleImages[movedMarbleGameEvent.getPlayerNumber()][movedMarbleGameEvent
-        .getMarbleNumber()];
-    image.toFront();
+    MarbleActor marbleActor = marbleActors[movedMarbleGameEvent
+        .getPlayerNumber()][movedMarbleGameEvent.getMarbleNumber()];
+    marbleActor.toFront();
 
     ParallelAction parallelAction = new ParallelAction();
 
     MoveToAction moveToAction = Actions.action(MoveToAction.class);
     moveToAction.setPosition(toX, toY);
     moveToAction.setDuration(DURATION_MOVE_MARBLE);
-    moveToAction.setActor(image);
+    moveToAction.setActor(marbleActor);
     parallelAction.addAction(moveToAction);
 
     RotateToAction rotateToAction = Actions.rotateTo(270.0f
@@ -501,7 +431,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
             movedMarbleGameEvent.getNewBoardIndex()) * 180.0 / Math.PI));
     rotateToAction.setUseShortestDirection(true);
     rotateToAction.setDuration(DURATION_MOVE_MARBLE);
-    rotateToAction.setActor(image);
+    rotateToAction.setActor(marbleActor);
     parallelAction.addAction(rotateToAction);
 
     return parallelAction;
@@ -511,33 +441,24 @@ public class GameStageScreen extends StageScreen implements EventListener {
   protected Action getActionToPlayCard(PlayedCardGameEvent playedCardGameEvent,
       final boolean faceDown) {
 
-    System.out.printf("getActionToPlayCard\n");
-
     Card card = playedCardGameEvent.getCard();
-    final Image image = cardImages.get(card.toString());
+    final CardActor cardActor = cardActors.get(card.toString());
 
     // TODO keep logic below or update board layout to have discard pile and deck pile
+    // TODO update to include random offsets in discard pile?
     Rectangle rectangleTo = boardLayout.getBoundsForDiscardPile();
-    float toX = rectangleTo.getX() * boardGroup.getWidth()
-        + (rectangleTo.getWidth() * boardGroup.getWidth() / 2.0f) + boardGroup.getX();
-    float toY = (1.0f - rectangleTo.getY()) * boardGroup.getHeight()
-        - rectangleTo.getHeight() * boardGroup.getHeight() + boardGroup.getY();
+    float toX = rectangleTo.getX() * boardActor.getWidth()
+        + (rectangleTo.getWidth() * boardActor.getWidth() / 1.8f) + boardActor.getX();
+    float toY = (1.0f - rectangleTo.getY()) * boardActor.getHeight()
+        - rectangleTo.getHeight() * boardActor.getHeight() + boardActor.getY();
 
     SequenceAction sequenceAction = Actions.sequence();
 
     RunnableAction runnableAction = Actions.run(new Runnable() {
       @Override
       public void run() {
-
-        image.toFront();
-
-        if (faceDown) {
-          // TODO need to figure out different image
-          image.setColor(Color.FIREBRICK);
-        } else {
-          image.setColor(Color.WHITE);
-        }
-
+        cardActor.toFront();
+        cardActor.setFaceDown(faceDown);
       }
     });
     sequenceAction.addAction(runnableAction);
@@ -547,19 +468,19 @@ public class GameStageScreen extends StageScreen implements EventListener {
     MoveToAction moveToAction = Actions.action(MoveToAction.class);
     moveToAction.setPosition(toX, toY);
     moveToAction.setDuration(DURATION_PLAY_CARD);
-    moveToAction.setActor(image);
+    moveToAction.setActor(cardActor);
     parallelAction.addAction(moveToAction);
 
-    SizeToAction sizeToAction = Actions.sizeTo(rectangleTo.getWidth() * boardGroup.getWidth(),
-        rectangleTo.getHeight() * boardGroup.getHeight());
+    SizeToAction sizeToAction = Actions.sizeTo(rectangleTo.getWidth() * boardActor.getWidth(),
+        rectangleTo.getHeight() * boardActor.getHeight());
     sizeToAction.setDuration(DURATION_PLAY_CARD);
-    sizeToAction.setActor(image);
+    sizeToAction.setActor(cardActor);
     parallelAction.addAction(sizeToAction);
 
     RotateToAction rotateToAction = Actions.rotateTo(0.0f);
     rotateToAction.setUseShortestDirection(true);
     rotateToAction.setDuration(DURATION_PLAY_CARD);
-    rotateToAction.setActor(image);
+    rotateToAction.setActor(cardActor);
     parallelAction.addAction(rotateToAction);
 
     sequenceAction.addAction(parallelAction);
@@ -567,7 +488,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     runnableAction = Actions.run(new Runnable() {
       @Override
       public void run() {
-        discardPile.add(image);
+        discardPile.add(cardActor);
       }
     });
     sequenceAction.addAction(runnableAction);
@@ -582,14 +503,11 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   protected void handleCannotPlayGameEvent(CannotPlayGameEvent cannotPlayGameEvent) {
-    System.out.printf("handleCannotPlayGameEvent\n");
     cannotPlayPlayerCards.addAll(game.getPlayers().get(
         cannotPlayGameEvent.getPlayerNumber()).getCards());
   }
 
   protected void handleExitedStateGameEvent(ExitedStateGameEvent exitedStateGameEvent) {
-
-    System.out.printf("handleExitedStateGameEvent\n");
 
     SequenceAction sequenceAction = new SequenceAction();
 
@@ -611,7 +529,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
           @Override
           public void run() {
             updateCardActors();
-            // TODO add animation to move cards to player areas
+            // TODO add animation to move cards to player areas?
             game.advance();
           }
         });
@@ -645,9 +563,9 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
           for (Card card : game.getPlayers().get(USER_PLAYER_NUMBER).getCards()) {
             final Card finalCard = card;
-            Image image = cardImages.get(card.toString());
-            image.clearListeners();
-            image.addListener(new ClickListener() {
+            CardActor cardActor = cardActors.get(card.toString());
+            cardActor.clearListeners();
+            cardActor.addListener(new ClickListener() {
               @Override
               public void clicked(InputEvent event, float x, float y) {
                 clickedCard(finalCard);
@@ -690,14 +608,11 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   protected void handleShuffledCardDeckGameEvent(
       ShuffledCardDeckGameEvent shuffledCardDeckGameEvent) {
-    System.out.printf("handleShuffledCardDeckGameEvet\n");
     discardPile.clear();
     updateCardActors();
   }
 
   public void setSelectedCard(Card card) {
-
-    System.out.printf("setSelectedCard\n");
 
     if (selectedCard == card) {
       resetUserInput();
@@ -707,36 +622,35 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     if (selectedCard != NO_CARD && selectedCard.getRank().equals(Card.Rank.SEVEN)) {
 
-      Image selectedCardImage = cardImages.get(selectedCard.toString());
-      float y = selectedCardImage.getY() + selectedCardImage.getHeight();
-      float x = selectedCardImage.getX();
-      for (Image image : splitCardImages) {
-        image.setPosition(x, y);
-        image.setVisible(true);
-        image.toFront();
-        x += selectedCardImage.getWidth() * (1.0f - CARD_OVERLAP);
+      CardActor selectedCardActor = cardActors.get(selectedCard.toString());
+      float y = selectedCardActor.getY() + selectedCardActor.getHeight();
+      float x = selectedCardActor.getX();
+      for (CardActor cardActor : splitCardActors) {
+        cardActor.setPosition(x, y);
+        cardActor.setVisible(true);
+        cardActor.toFront();
+        x += selectedCardActor.getWidth() * (1.0f - CARD_OVERLAP);
       }
 
     } else {
-      for (Image image : splitCardImages) {
-        image.setVisible(false);
+      for (CardActor cardActor : splitCardActors) {
+        cardActor.setVisible(false);
       }
     }
 
     // reset all cards to not be highlighted
     for (Card playerCard : game.getPlayers().get(USER_PLAYER_NUMBER).getCards()) {
-      cardImages.get(playerCard.toString()).setColor(Color.WHITE);
+      cardActors.get(playerCard.toString()).setSelected(false);
     }
 
     // update the selected card to be highlighted
     if (selectedCard != NO_CARD) {
-      cardImages.get(selectedCard.toString()).setColor(Color.YELLOW);
+      cardActors.get(selectedCard.toString()).setSelected(true);
     }
 
   }
 
   protected void resetUserInput() {
-    System.out.printf("resetUserInput\n");
     setSelectedCard(NO_CARD);
     selectedMarble1 = UserPlay.NO_MARBLE;
     selectedMarble2 = UserPlay.NO_MARBLE;
@@ -744,44 +658,12 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   public void updateBoardActors() {
-
-    System.out.printf("updateBoardActors\n");
-
-    // update the size and position of the group
-    boardGroup.setSize(viewport.getMinWorldHeight(), viewport.getMinWorldHeight());
-    boardGroup.setPosition(-boardGroup.getWidth() / 2.0f, -boardGroup.getHeight() / 2.0f);
-
-    // rotate the board to align with the player locations on the screen
-    float angle0 = boardLayout.getAngleForBoardIndex(game.getBoard().getHomeEntryBoardIndex(0));
-    float angle1 = boardLayout.getAngleForBoardIndex(game.getBoard().getHomeEntryBoardIndex(1));
-    boardGroup.setOrigin(Align.center);
-    boardGroup.setRotation((angle0 - angle1) / 2.0f * 180.0f / (float) Math.PI);
-
-    // update the board background image, unrotate the image so it is still a square
-    boardBackgroundImage.setSize(boardGroup.getWidth(), boardGroup.getHeight());
-    boardBackgroundImage.setOrigin(Align.center);
-    boardBackgroundImage.setRotation(-boardGroup.getRotation());
-
-    // update the board spaces
-    for (int boardIndex = 0; boardIndex < boardSpaceImages.length; boardIndex++) {
-      Rectangle rectangle = boardLayout.getBoundsForSpace(boardIndex);
-      float boardSpaceHeight = rectangle.getHeight() * boardGroup.getHeight();
-      boardSpaceImages[boardIndex].setSize(rectangle.getWidth() * boardGroup.getWidth(),
-          boardSpaceHeight);
-      boardSpaceImages[boardIndex].setPosition(rectangle.getX() * boardGroup.getWidth(),
-          (1.0f - rectangle.getY()) * boardGroup.getHeight() - boardSpaceHeight);
-      boardSpaceImages[boardIndex].setOrigin(Align.center);
-      boardSpaceImages[boardIndex].setRotation(270.0f
-          - (float) (boardLayout.getAngleForBoardIndex(boardIndex) * 180.0 / Math.PI));
-    }
-
+    boardActor.update();
   }
 
   public void updateCardActors() {
 
-    System.out.printf("updateCardActors\n");
-
-    float maxCardWidth = playerGroups[0].getWidth() * 0.95f;
+    float maxCardWidth = playerActors[0].getWidth() * 0.95f;
     float cardWidth = maxCardWidth / (1 + (4 * (1.0f - CARD_OVERLAP)));
     float cardHeight = cardWidth * (Card.HEIGHT / Card.WIDTH);
 
@@ -793,71 +675,69 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
         Card card = playerCards.get(cardNumber);
 
-        Image image = cardImages.get(card.toString());
+        CardActor cardActor = cardActors.get(card.toString());
 
-        image.setSize(cardWidth, cardHeight);
+        cardActor.setSize(cardWidth, cardHeight);
 
-        float playerCardsWidth = image.getWidth()
-            + ((playerCards.size() - 1) * image.getWidth() * (1.0f - CARD_OVERLAP));
-        float x = playerGroups[playerNumber].getX()
-            + (playerGroups[playerNumber].getWidth() / 2.0f) - (playerCardsWidth / 2.0f)
-            + (cardNumber * image.getWidth() * (1.0f - CARD_OVERLAP));
-        float y = playerGroups[playerNumber].getY() + playerGroups[playerNumber].getHeight()
-            - (playerLabels[playerNumber].getHeight()) - cardHeight;
-        image.setPosition(x, y);
+        float playerCardsWidth = cardActor.getWidth()
+            + ((playerCards.size() - 1) * cardActor.getWidth() * (1.0f - CARD_OVERLAP));
+        float x = playerActors[playerNumber].getX()
+            + (playerActors[playerNumber].getWidth() / 2.0f) - (playerCardsWidth / 2.0f)
+            + (cardNumber * cardActor.getWidth() * (1.0f - CARD_OVERLAP));
+        float y = playerActors[playerNumber].getY() + playerActors[playerNumber].getHeight()
+            - (playerActors[playerNumber].nameLabel.getHeight()) - cardHeight;
+        cardActor.setPosition(x, y);
 
-        image.setOrigin(Align.center);
-        image.setRotation(0.0f);
+        cardActor.setOrigin(Align.center);
+        cardActor.setRotation(0.0f);
 
-        image.setColor(playerNumber == 0 ? Color.WHITE : Color.FIREBRICK);
+        cardActor.setFaceDown(playerNumber != USER_PLAYER_NUMBER);
 
       }
 
     }
 
     // update the split cards
-    for (Image image : splitCardImages) {
-      image.setSize(cardWidth, cardHeight);
+    for (CardActor cardActor : splitCardActors) {
+      cardActor.setSize(cardWidth, cardHeight);
     }
 
     // update the discard pile
     Rectangle rectangle = boardLayout.getBoundsForDiscardPile();
-    for (Image image : discardPile) {
-      image.setSize(rectangle.getWidth() * boardGroup.getWidth(),
-          rectangle.getHeight() * boardGroup.getHeight());
-      image.setPosition(rectangle.getX() * boardGroup.getWidth()
-          + (rectangle.getWidth() * boardGroup.getWidth() / 2.0f) + boardGroup.getX(),
-          (1.0f - rectangle.getY()) * boardGroup.getHeight()
-          - rectangle.getHeight() * boardGroup.getHeight() + boardGroup.getY());
-      image.setRotation(0.0f);
+    for (CardActor cardActor : discardPile) {
+      cardActor.setSize(rectangle.getWidth() * boardActor.getWidth(),
+          rectangle.getHeight() * boardActor.getHeight());
+      cardActor.setPosition(rectangle.getX() * boardActor.getWidth()
+          + (rectangle.getWidth() * boardActor.getWidth() / 1.8f) + boardActor.getX(),
+          (1.0f - rectangle.getY()) * boardActor.getHeight()
+          - rectangle.getHeight() * boardActor.getHeight() + boardActor.getY());
+      cardActor.setRotation(0.0f);
     }
 
     // update the card deck (undealt cards)
     for (Card card : game.getCardDeck().getUndealtCards()) {
-      Image image = cardImages.get(card.toString());
-      image.setSize(rectangle.getWidth() * boardGroup.getWidth(),
-          rectangle.getHeight() * boardGroup.getHeight());
-      image.setPosition(rectangle.getX() * boardGroup.getWidth()
-          - (rectangle.getWidth() * boardGroup.getWidth() / 2.0f) + boardGroup.getX(),
-          (1.0f - rectangle.getY()) * boardGroup.getHeight()
-          - rectangle.getHeight() * boardGroup.getHeight() + boardGroup.getY());
-      image.setRotation(0.0f);
-      image.setColor(Color.FIREBRICK);
+      CardActor cardActor = cardActors.get(card.toString());
+      cardActor.setSize(rectangle.getWidth() * boardActor.getWidth(),
+          rectangle.getHeight() * boardActor.getHeight());
+      cardActor.setPosition(rectangle.getX() * boardActor.getWidth()
+          - (rectangle.getWidth() * boardActor.getWidth() / 2.0f) + boardActor.getX(),
+          (1.0f - rectangle.getY()) * boardActor.getHeight()
+          - rectangle.getHeight() * boardActor.getHeight() + boardActor.getY());
+      cardActor.setRotation(0.0f);
+      cardActor.setFaceDown(true);
     }
 
     // update the depth order of the player actors and cards
     for (int i = game.getNumberOfTeams(); i < game.getNumberOfPlayers(); i++) {
-      playerGroups[i].toFront();
+      playerActors[i].toFront();
       for (Card card : game.getPlayers().get(i).getCards()) {
-        Image image = cardImages.get(card.toString());
-        image.toFront();
+        cardActors.get(card.toString()).toFront();
       }
     }
     for (int i = game.getNumberOfTeams() - 1; i >= 0; i--) {
-      playerGroups[i].toFront();
+      playerActors[i].toFront();
       for (Card card : game.getPlayers().get(i).getCards()) {
-        Image image = cardImages.get(card.toString());
-        image.toFront();
+        cardActors.get(card.toString()).toFront();
       }
     }
 
@@ -865,21 +745,18 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   public void updateMarbleActors() {
 
-    System.out.printf("updateMarbleActors\n");
-
     for (Player player : game.getPlayers()) {
 
       for (Marble marble : player.getMarbles()) {
 
         Rectangle rectangle = boardLayout.getBoundsForMarble(marble.getBoardIndex());
-        float marbleHeight = rectangle.getHeight() * boardGroup.getHeight();
-        marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setSize(
-            rectangle.getWidth() * boardGroup.getWidth(), marbleHeight);
-        marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setPosition(
-            rectangle.getX() * boardGroup.getWidth(),
-            (1.0f - rectangle.getY()) * boardGroup.getHeight() - marbleHeight);
-        marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setOrigin(Align.center);
-        marbleImages[player.getPlayerNumber()][marble.getMarbleNumber()].setRotation(270.0f
+        float marbleHeight = rectangle.getHeight() * boardActor.getHeight();
+        MarbleActor marbleActor = marbleActors[player.getPlayerNumber()][marble.getMarbleNumber()];
+        marbleActor.setSize(rectangle.getWidth() * boardActor.getWidth(), marbleHeight);
+        marbleActor.setPosition(rectangle.getX() * boardActor.getWidth(),
+            (1.0f - rectangle.getY()) * boardActor.getHeight() - marbleHeight);
+        marbleActor.setOrigin(Align.center);
+        marbleActor.setRotation(270.0f
             - (float) (boardLayout.getAngleForBoardIndex(marble.getBoardIndex())
             * 180.0 / Math.PI));
 
@@ -890,39 +767,9 @@ public class GameStageScreen extends StageScreen implements EventListener {
   }
 
   public void updatePlayerActors() {
-
-    System.out.printf("updatePlayerActors\n");
-
-    for (Player player : game.getPlayers()) {
-
-      int playerNumber = player.getPlayerNumber();
-
-      playerGroups[playerNumber].setSize(
-          (viewport.getWorldWidth() - boardGroup.getWidth()) / 2.0f,
-          viewport.getMinWorldHeight() / game.getNumberOfTeams());
-      float playerGroupX, playerGroupY;
-      if (playerNumber < game.getNumberOfTeams()) {
-        // left side of board
-        playerGroupX = -viewport.getWorldWidth() / 2.0f;
-        playerGroupY = -(viewport.getMinWorldHeight() / 2.0f)
-            + (playerGroups[playerNumber].getHeight() * playerNumber);
-      } else {
-        // right side of board
-        playerGroupX = viewport.getWorldWidth() / 2.0f - playerGroups[playerNumber].getWidth();
-        playerGroupY = (viewport.getMinWorldHeight() / 2.0f)
-            - (playerGroups[playerNumber].getHeight()
-            * (playerNumber - game.getNumberOfTeams() + 1));
-      }
-      playerGroups[playerNumber].setPosition(playerGroupX, playerGroupY);
-
-      playerBackgroundImages[playerNumber].setSize(playerGroups[playerNumber].getWidth(),
-          playerGroups[playerNumber].getHeight());
-
-      playerLabels[playerNumber].setY(playerGroups[playerNumber].getHeight()
-          - playerLabels[playerNumber].getHeight());
-
+    for (int playerNumber = 0; playerNumber < game.getNumberOfPlayers(); playerNumber++) {
+      playerActors[playerNumber].update();
     }
-
   }
 
   @Override
@@ -942,7 +789,6 @@ public class GameStageScreen extends StageScreen implements EventListener {
   @Override
   public void pause() {
     // TODO
-    System.out.printf("pause\n");
   }
 
   @Override
@@ -957,12 +803,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   }
 
-  boolean firstResize = true;
-
   @Override
   public void resize(int width, int height) {
-
-    System.out.printf("resize\n");
 
     super.resize(width, height);
 
@@ -974,6 +816,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     updatePlayerActors();
     updateCardActors();
 
+    // TODO do we want to keep this logic?
     if (firstResize) {
       firstResize = false;
       // start the game
@@ -985,18 +828,219 @@ public class GameStageScreen extends StageScreen implements EventListener {
   @Override
   public void resume() {
     // TODO
-    System.out.printf("resume\n");
   }
 
   @Override
   public void show() {
-
-    System.out.printf("show\n");
-
     super.show();
+  }
 
-    // TODO need to account for leaving screen and coming back
-    // start the game
+  protected class BoardActor extends Group {
+
+    /**
+     * The image used as the background for the game board.
+     */
+    protected final transient Image boardBackgroundImage;
+    /**
+     * The array of images for the spaces on the board. The index into the array is the board index
+     * and the value is the image for that board space.
+     */
+    protected final transient Image[] boardSpaceImages;
+
+    public BoardActor() {
+
+      // create the image for the board background
+      boardBackgroundImage = new Image(maurersMarblesGame.getAssetManager().get(
+          "board_background.png", Texture.class));
+      boardBackgroundImage.setColor(0.75f, 0.75f, 0.75f, 1);
+      addActor(boardBackgroundImage);
+
+      // create the images for the board spaces
+      boardSpaceImages = new Image[game.getBoard().getNumberOfPlayableSpaces()];
+      for (int i = 0; i < boardSpaceImages.length; i++) {
+        boardSpaceImages[i] = new Image(maurersMarblesGame.getAssetManager().get("board_space.png",
+            Texture.class));
+        boardSpaceImages[i].setColor(0.5f, 0.5f, 0.5f, 1);
+        addActor(boardSpaceImages[i]);
+      }
+
+      // set the colors for the player board spaces
+      for (int playerNumber = 0; playerNumber < game.getNumberOfPlayers(); playerNumber++) {
+        boardSpaceImages[game.getBoard().getSafeBoardIndex(playerNumber)].setColor(
+            getColorForPlayer(playerNumber));
+        for (int boardIndex : game.getBoard().getHomeBoardIndexes(playerNumber)) {
+          boardSpaceImages[boardIndex].setColor(getColorForPlayer(playerNumber));
+        }
+        for (int boardIndex : game.getBoard().getStartBoardIndexes(playerNumber)) {
+          boardSpaceImages[boardIndex].setColor(getColorForPlayer(playerNumber));
+        }
+      }
+
+    }
+
+    public void update() {
+
+      // update the size and position of the group
+      setSize(viewport.getMinWorldHeight(), viewport.getMinWorldHeight());
+      setPosition(-getWidth() / 2.0f, -getHeight() / 2.0f);
+
+      // rotate the board to align with the player locations on the screen
+      float angle0 = boardLayout.getAngleForBoardIndex(game.getBoard().getHomeEntryBoardIndex(0));
+      float angle1 = boardLayout.getAngleForBoardIndex(game.getBoard().getHomeEntryBoardIndex(1));
+      setOrigin(Align.center);
+      setRotation((angle0 - angle1) / 2.0f * 180.0f / (float) Math.PI);
+
+      // update the board background image, unrotate the image so it is still a square
+      boardBackgroundImage.setSize(getWidth(), getHeight());
+      boardBackgroundImage.setOrigin(Align.center);
+      boardBackgroundImage.setRotation(-getRotation());
+
+      // update the board spaces
+      for (int boardIndex = 0; boardIndex < boardSpaceImages.length; boardIndex++) {
+        Rectangle rectangle = boardLayout.getBoundsForSpace(boardIndex);
+        float boardSpaceHeight = rectangle.getHeight() * getHeight();
+        boardSpaceImages[boardIndex].setSize(rectangle.getWidth() * getWidth(), boardSpaceHeight);
+        boardSpaceImages[boardIndex].setPosition(rectangle.getX() * getWidth(),
+            (1.0f - rectangle.getY()) * getHeight() - boardSpaceHeight);
+        boardSpaceImages[boardIndex].setOrigin(Align.center);
+        boardSpaceImages[boardIndex].setRotation(270.0f
+            - (float) (boardLayout.getAngleForBoardIndex(boardIndex) * 180.0 / Math.PI));
+      }
+
+    }
+
+  }
+
+  protected class CardActor extends Group {
+
+    Image backImage;
+    Image frontImage;
+    Label label;
+
+    public CardActor(Card card) {
+      backImage = new Image(maurersMarblesGame.getAssetManager().get("card_back.png",
+          Texture.class));
+      //backImage.setColor(Color.SKY);
+      frontImage = new Image(maurersMarblesGame.getAssetManager().get("card_"
+          + card.toString().toLowerCase() + ".png", Texture.class));
+      label = new Label(" " + card.toString(), new Label.LabelStyle(new BitmapFont(),
+          card.getSuit().equals(Card.Suit.CLUBS) || card.getSuit().equals(Card.Suit.SPADES)
+          ? Color.BLACK : Color.RED));
+      addActor(backImage);
+      addActor(frontImage);
+      addActor(label);
+    }
+
+    public void setFaceDown(boolean faceDown) {
+      if (faceDown) {
+        backImage.setVisible(true);
+        frontImage.setVisible(false);
+        label.setVisible(false);
+      } else {
+        backImage.setVisible(false);
+        frontImage.setVisible(true);
+        label.setVisible(true);
+      }
+    }
+
+    public void setSelected(boolean selected) {
+      // TODO change to hide/show selected image on top?
+      if (selected) {
+        frontImage.setColor(Color.YELLOW);
+      } else {
+        frontImage.setColor(Color.WHITE);
+      }
+    }
+
+    @Override
+    public void setHeight(float height) {
+      super.setHeight(height);
+      backImage.setHeight(height);
+      frontImage.setHeight(height);
+      label.setY(height - label.getHeight());
+    }
+
+    @Override
+    public void setSize(float width, float height) {
+      super.setSize(width, height);
+      backImage.setSize(width, height);
+      frontImage.setSize(width, height);
+      label.setY(height - label.getHeight());
+    }
+
+    @Override
+    public void setWidth(float width) {
+      super.setWidth(width);
+      backImage.setWidth(width);
+      frontImage.setWidth(width);
+    }
+
+  }
+
+  protected class MarbleActor extends Group {
+
+    Image marbleImage;
+
+    public MarbleActor(int playerNumber) {
+      marbleImage = new Image(maurersMarblesGame.getAssetManager().get("marble.png",
+          Texture.class));
+      marbleImage.setColor(getColorForPlayer(playerNumber));
+      addActor(marbleImage);
+    }
+
+    @Override
+    public void setSize(float width, float height) {
+      super.setSize(width, height);
+      marbleImage.setSize(width, height);
+    }
+
+  }
+
+  protected class PlayerActor extends Group {
+
+    Image backgroundImage;
+    int playerNumber;
+    Label nameLabel;
+
+    public PlayerActor(int playerNumber) {
+
+      this.playerNumber = playerNumber;
+
+      backgroundImage = new Image(maurersMarblesGame.getAssetManager().get(
+          "player_background.png", Texture.class));
+      backgroundImage.setColor(getColorForPlayer(playerNumber));
+      addActor(backgroundImage);
+
+      nameLabel = new Label(" Player " + playerNumber,
+          new Label.LabelStyle(new BitmapFont(), Color.GOLD));
+      addActor(nameLabel);
+
+    }
+
+    public void update() {
+
+      setSize((viewport.getWorldWidth() - boardActor.getWidth()) / 2.0f,
+          viewport.getMinWorldHeight() / game.getNumberOfTeams());
+
+      float playerGroupX, playerGroupY;
+      if (playerNumber < game.getNumberOfTeams()) {
+        // left side of board
+        playerGroupX = -viewport.getWorldWidth() / 2.0f;
+        playerGroupY = -(viewport.getMinWorldHeight() / 2.0f) + (getHeight() * playerNumber);
+      } else {
+        // right side of board
+        playerGroupX = viewport.getWorldWidth() / 2.0f - getWidth();
+        playerGroupY = (viewport.getMinWorldHeight() / 2.0f) - (getHeight()
+            * (playerNumber - game.getNumberOfTeams() + 1));
+      }
+      setPosition(playerGroupX, playerGroupY);
+
+      backgroundImage.setSize(getWidth(), getHeight());
+
+      nameLabel.setY(getHeight() - nameLabel.getHeight());
+
+    }
+
   }
 
   protected class UserPlaySelector extends PlaySelector {
