@@ -156,6 +156,11 @@ public class GameStageScreen extends StageScreen implements EventListener {
    */
   protected transient Marble selectedMarble2 = UserPlay.NO_MARBLE;
   /**
+   * The array of player actors. the index into the array is the player number and the value is the
+   * player actor for that player.
+   */
+  protected final transient PlayerActor[] playerActors;
+  /**
    * The set of card actors in the discard pile.
    */
   protected final transient Set<CardActor> discardPile = new LinkedHashSet<>();
@@ -266,6 +271,14 @@ public class GameStageScreen extends StageScreen implements EventListener {
       });
       splitCardActors[splitValue++ - 1] = cardActor;
       stage.addActor(cardActor);
+    }
+
+    // create the actors for the players
+    playerActors = new PlayerActor[numberOfPlayers];
+    for (int playerNumber = 0; playerNumber < numberOfPlayers; playerNumber++) {
+      PlayerActor playerActor = new PlayerActor(playerNumber);
+      playerActors[playerNumber] = playerActor;
+      stage.addActor(playerActor);
     }
 
     mainMenuLabel = new Label("Main Menu", new LabelStyle(new BitmapFont(), Color.GOLD));
@@ -613,13 +626,31 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
       CardActor selectedCardActor = cardActors.get(selectedCard.toString());
       float y = selectedCardActor.getY() + selectedCardActor.getHeight();
-      float x = selectedCardActor.getX();
-      for (CardActor cardActor : splitCardActors) {
-        cardActor.setPosition(x, y);
+      float centerX = selectedCardActor.getX() + (selectedCardActor.getWidth() / 2.0f);
+      // vertical stack
+      for (int i = 0; i < splitCardActors.length; i++) {
+        CardActor cardActor = splitCardActors[i];
+        float newX = centerX;
+        float newY = y + (i * cardActor.getHeight());
+        cardActor.setPosition(newX - (cardActor.getWidth() / 2.0f), newY);
         cardActor.setVisible(true);
         cardActor.toFront();
-        x += selectedCardActor.getWidth() * (1.0f - CARD_OVERLAP);
       }
+      // spiral
+      /*float width = (selectedCardActor.getWidth()
+          + (4 * selectedCardActor.getWidth() * (1.0f - CARD_OVERLAP))) / 2.0f;
+      for (int i = 0; i < splitCardActors.length; i++) {
+        CardActor cardActor = splitCardActors[i];
+        float angle = (float) Math.PI / 8.0f * (float) (7 - i);
+        float newX = centerX + width * (float) Math.cos(angle);
+        float newY = y + width * (float) Math.sin(angle);
+        cardActor.setPosition(newX - (cardActor.getWidth() / 2.0f),
+            newY - (cardActor.getHeight() / 2.0f));
+        cardActor.setOrigin(Align.center);
+        cardActor.setRotation(((-(float)Math.PI / 2.0f)+angle) * 180.0f / (float)Math.PI);
+        cardActor.setVisible(true);
+        cardActor.toFront();
+      }*/
 
     } else {
       for (CardActor cardActor : splitCardActors) {
@@ -652,108 +683,53 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   public void updateCardActors() {
 
-    Rectangle rectangleLeft = boardLayout.getBoundsForBoardIndex(
-        game.getBoard().getSafeBoardIndex(0));
-    Rectangle rectangleRight = boardLayout.getBoundsForBoardIndex(
-        game.getBoard().getHomeEntryBoardIndex(0) - 2);
-    float playerWidth = (rectangleRight.getX() * boardActor.getWidth())
-        + (rectangleRight.getWidth() * boardActor.getWidth())
-        - (rectangleLeft.getX() * boardActor.getWidth());
-
-    float maxCardWidth = playerWidth * 0.95f;
-    float cardWidth = maxCardWidth / (1 + (4 * (1.0f - CARD_OVERLAP)));
-    float cardHeight = cardWidth * (Card.HEIGHT / Card.WIDTH);
-
     // update the player cards
-    for (int playerNumber = 1; playerNumber < game.getNumberOfPlayers(); playerNumber++) {
+    float cardWidth = 0;
+    float cardHeight = 0;
+    for (int playerNumber = 0; playerNumber < game.getNumberOfPlayers(); playerNumber++) {
 
-      float angle = boardLayout.getAngleForBoardIndex(game.getBoard().getHomeEntryBoardIndex(
-          playerNumber));
+      float maxCardWidth = playerActors[playerNumber].getWidth() * 0.95f;
+      cardWidth = maxCardWidth / (1 + (4 * (1.0f - CARD_OVERLAP)));
+      cardHeight = cardWidth * (Card.HEIGHT / Card.WIDTH);
+      float maxCardHeight = playerActors[playerNumber].getHeight()
+          - playerActors[playerNumber].nameLabel.getHeight();
+      if (cardHeight > maxCardHeight) {
+        cardHeight = maxCardHeight;
+        cardWidth = maxCardHeight * (Card.WIDTH / Card.HEIGHT);
+      }
+
+      if (playerNumber == 0) {
+        // update the split cards
+        for (CardActor cardActor : splitCardActors) {
+          cardActor.setSize(cardWidth, cardHeight * 0.25f);
+        }
+      }
 
       List<Card> playerCards = game.getPlayers().get(playerNumber).getCards();
-      for (int i = 0; i < playerCards.size(); i++) {
+      for (int cardNumber = 0; cardNumber < playerCards.size(); cardNumber++) {
 
-        Card card = playerCards.get(i);
+        Card card = playerCards.get(cardNumber);
+
         CardActor cardActor = cardActors.get(card.toString());
 
         cardActor.setSize(cardWidth, cardHeight);
 
-        float centerX = boardActor.getX() + ((0.49f * boardActor.getWidth())
-            + (cardActor.getHeight() / 2.0f)) * (float) Math.cos(angle + Math.PI)
-            + (boardActor.getWidth() / 2.0f) - (cardActor.getWidth() / 2.0f);
-        float centerY = boardActor.getY() + ((-0.49f * boardActor.getHeight())
-            - (cardActor.getHeight() / 2.0f)) * (float) Math.sin(angle + Math.PI)
-            + (boardActor.getHeight() / 2.0f) - (cardActor.getHeight() / 2.0f);
-
-        float width = cardActor.getWidth();
-        if (playerCards.size() > 1) {
-          width += cardActor.getWidth() * (1.0f - CARD_OVERLAP) * (playerCards.size() - 1);
-        }
-        float x = centerX + (((cardActor.getWidth() / 2.0f) - (width / 2.0f)
-            + (i * cardActor.getWidth() * (1.0f - CARD_OVERLAP)))
-            * (float) Math.cos(angle + Math.PI / 2.0f));
-        float y = centerY - (((cardActor.getWidth() / 2.0f) - (width / 2.0f)
-            + (i * cardActor.getWidth() * (1.0f - CARD_OVERLAP)))
-            * (float) Math.sin(angle + Math.PI / 2.0f));
+        float playerCardsWidth = cardActor.getWidth()
+            + ((playerCards.size() - 1) * cardActor.getWidth() * (1.0f - CARD_OVERLAP));
+        float x = playerActors[playerNumber].getX()
+            + (playerActors[playerNumber].getWidth() / 2.0f) - (playerCardsWidth / 2.0f)
+            + (cardNumber * cardActor.getWidth() * (1.0f - CARD_OVERLAP));
+        float y = playerActors[playerNumber].getY() + playerActors[playerNumber].getHeight()
+            - (playerActors[playerNumber].nameLabel.getHeight()) - cardHeight;
         cardActor.setPosition(x, y);
 
         cardActor.setOrigin(Align.center);
-        cardActor.setRotation(270.0f - (float) (angle * 180.0 / Math.PI));
+        cardActor.setRotation(0.0f);
 
-        cardActor.setFaceDown(true);
+        cardActor.setFaceDown(playerNumber != USER_PLAYER_NUMBER);
 
       }
 
-    }
-
-    if (portrait) {
-      maxCardWidth = viewport.getWorldWidth();
-    } else {
-      maxCardWidth = (viewport.getWorldWidth() - boardActor.getWidth());
-    }
-    cardWidth = maxCardWidth / (1 + (4 * (1.0f - CARD_OVERLAP)));
-    cardHeight = cardWidth * (Card.HEIGHT / Card.WIDTH);
-
-    // update the user cards
-    int playerNumber = 0;
-    List<Card> playerCards = game.getPlayers().get(playerNumber).getCards();
-    for (int i = 0; i < playerCards.size(); i++) {
-
-      Card card = playerCards.get(i);
-      CardActor cardActor = cardActors.get(card.toString());
-
-      cardActor.setSize(cardWidth, cardHeight);
-
-      float centerX;
-      float centerY;
-      if (portrait) {
-        centerX = (viewport.getWorldWidth() / 2.0f);
-        centerY = (viewport.getWorldHeight() - boardActor.getHeight()) / 2.0f;
-      } else {
-        centerX = (viewport.getWorldWidth() - boardActor.getWidth()) / 2.0f
-            + boardActor.getX() + boardActor.getWidth();
-        centerY = (viewport.getWorldHeight() / 2.0f);
-      }
-
-      float width = cardActor.getWidth();
-      if (playerCards.size() > 1) {
-        width += cardActor.getWidth() * (1.0f - CARD_OVERLAP) * (playerCards.size() - 1);
-      }
-      float x = centerX - (width / 2.0f) + (i * cardActor.getWidth() * (1.0f - CARD_OVERLAP));
-      float y = centerY - (cardActor.getHeight() / 2.0f);
-      cardActor.setPosition(x, y);
-
-      cardActor.setOrigin(Align.center);
-      cardActor.setRotation(0.0f);
-
-      cardActor.setFaceDown(false);
-      cardActor.toFront();
-
-    }
-
-    // update the split cards
-    for (CardActor cardActor : splitCardActors) {
-      cardActor.setSize(cardWidth, cardHeight);
     }
 
     // update the discard pile
@@ -806,6 +782,12 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
   }
 
+  public void updatePlayerActors() {
+    for (int playerNumber = 0; playerNumber < game.getNumberOfPlayers(); playerNumber++) {
+      playerActors[playerNumber].update();
+    }
+  }
+
   @Override
   public void handleEvent(Event event) {
     if (event instanceof CannotPlayGameEvent) {
@@ -844,6 +826,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     updateBoardActors();
     updateMarbleActors();
+    updatePlayerActors();
     updateCardActors();
 
     // TODO do we want to keep this logic?
@@ -1036,6 +1019,95 @@ public class GameStageScreen extends StageScreen implements EventListener {
     public void setSize(float width, float height) {
       super.setSize(width, height);
       marbleImage.setSize(width, height);
+    }
+
+  }
+
+  protected class PlayerActor extends Group {
+
+    Image backgroundImage;
+    int playerNumber;
+    Label nameLabel;
+
+    public PlayerActor(int playerNumber) {
+
+      this.playerNumber = playerNumber;
+
+      backgroundImage = new Image(maurersMarblesGame.getAssetManager().get(
+          "player_background.png", Texture.class));
+      backgroundImage.setColor(getColorForPlayer(playerNumber));
+      addActor(backgroundImage);
+
+      nameLabel = new Label(" Player " + playerNumber,
+          new Label.LabelStyle(new BitmapFont(), Color.GOLD));
+      addActor(nameLabel);
+
+    }
+
+    public void update() {
+
+      if (playerNumber == USER_PLAYER_NUMBER) {
+        if (portrait) {
+          setSize(viewport.getWorldWidth(),
+              (viewport.getWorldHeight() - boardActor.getHeight()) / 2.0f);
+          setPosition(0, 0);
+        } else {
+          setSize(viewport.getWorldWidth() - boardActor.getWidth(),
+              viewport.getWorldHeight() / 2.0f);
+          setPosition(boardActor.getX() + boardActor.getWidth(), 0);
+        }
+      } else {
+
+        int numberOfRows = 0;
+        int numberOfColumns = 0;
+        switch (game.getNumberOfPlayers()) {
+          case 4:
+            numberOfRows = 1;
+            numberOfColumns = 3;
+            break;
+          case 6:
+            numberOfRows = 2;
+            numberOfColumns = 3;
+            break;
+          case 8:
+            numberOfRows = 2;
+            numberOfColumns = 4;
+            break;
+          case 10:
+            numberOfRows = 3;
+            numberOfColumns = 3;
+            break;
+          case 12:
+            numberOfRows = 3;
+            numberOfColumns = 4;
+            break;
+        }
+
+        int row = (playerNumber - 1) / numberOfColumns;
+        int col = (playerNumber - 1) % numberOfColumns;
+        if (portrait) {
+          setSize(viewport.getWorldWidth() / numberOfColumns,
+              (viewport.getWorldHeight() - boardActor.getHeight()) / 2.0f / numberOfRows);
+          setPosition(getWidth() * col,
+              viewport.getWorldHeight() - boardActor.getHeight() - (getHeight() * (row + 1)));
+        } else {
+          setSize((viewport.getWorldWidth() - boardActor.getWidth())
+              / numberOfColumns, viewport.getWorldHeight() / 2.0f / numberOfRows);
+          setPosition(boardActor.getX() + boardActor.getWidth()
+              + (getWidth() * col),
+              viewport.getWorldHeight() - (getHeight() * (row + 1)));
+        }
+        if ((game.getNumberOfPlayers() - 1) % numberOfColumns != 0
+            && row == numberOfRows - 1) {
+          setX(getX() + getWidth() / 2.0f);
+        }
+
+      }
+
+      backgroundImage.setSize(getWidth(), getHeight());
+
+      nameLabel.setY(getHeight() - nameLabel.getHeight());
+
     }
 
   }
