@@ -66,10 +66,10 @@ public class MainMenuStageScreen extends StageScreen {
     String[] texts = new String[]{"Four", "Six", "Eight", "Ten", "Twelve"};
     int[] values = new int[]{4, 6, 8, 10, 12};
 
-    int y = 90;
+    int y = (int)(viewport.getWorldHeight() / 2.0f) + 90;
     for (int i = 0; i < texts.length; i++) {
       Label label = new Label(texts[i], new LabelStyle(bitmapFont, Color.BLACK));
-      label.setPosition(0, y -= 30, Align.center);
+      label.setPosition(viewport.getWorldWidth() / 2.0f, y -= 30, Align.center);
       final int numberOfPlayers = values[i];
       label.addListener(new ClickListener() {
         @Override
