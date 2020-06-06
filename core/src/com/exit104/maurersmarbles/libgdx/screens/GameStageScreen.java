@@ -801,7 +801,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
   public void render(float delta) {
 
     stage.getCamera().update();
-    Gdx.gl.glClearColor(3.0f / 255.0f, 105.0f / 255.0f, 42.0f / 255.0f, 1);
+    Gdx.gl.glClearColor(0.75f, 0.75f, 0.75f, 1);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
     stage.act();
@@ -883,7 +883,9 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     public void update() {
 
-      setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
+      setSize(viewport.getMinWorldWidth() * 0.98f, viewport.getMinWorldHeight() * 0.98f);
+      setPosition((viewport.getMinWorldWidth() - getWidth()) / 2.0f,
+          (viewport.getMinWorldHeight() - getHeight()) / 2.0f);
 
       ((CurvedBoardLayout) boardLayout).update(getWidth(), getHeight());
       boardBackgroundImage.setSize(getWidth(), getHeight());
@@ -1005,7 +1007,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
       nameLabel = new Label(" Player " + playerNumber,
           new Label.LabelStyle(new BitmapFont(), Color.GOLD));
-      addActor(nameLabel);
+      //addActor(nameLabel);
 
     }
 
@@ -1016,73 +1018,80 @@ public class GameStageScreen extends StageScreen implements EventListener {
           setSize(viewport.getWorldWidth() / 3.5f, viewport.getWorldHeight() / 3.5f);
           switch (playerNumber) {
             case 0:
-              setPosition(0, 0);
+              setPosition(-(viewport.getWorldWidth() - viewport.getMinWorldWidth()) / 2.0f,
+                  -(viewport.getWorldHeight() - viewport.getMinWorldHeight()) / 2.0f);
               break;
             case 1:
-              setPosition(0, viewport.getWorldHeight() - getHeight());
+              setPosition(-(viewport.getWorldWidth() - viewport.getMinWorldWidth()) / 2.0f,
+                  viewport.getWorldHeight() - getHeight()
+                  - (viewport.getWorldHeight() - viewport.getMinWorldHeight()) / 2.0f);
               break;
             case 2:
-              setPosition(viewport.getWorldWidth() - getWidth(),
-                  viewport.getWorldHeight() - getHeight());
+              setPosition(viewport.getWorldWidth() - getWidth()
+                  - (viewport.getWorldWidth() - viewport.getMinWorldWidth()) / 2.0f,
+                  viewport.getMinWorldHeight() - getHeight()
+                  + (viewport.getWorldHeight() - viewport.getMinWorldHeight()) / 2.0f);
               break;
             case 3:
-              setPosition(viewport.getWorldWidth() - getWidth(), 0);
+              setPosition(viewport.getWorldWidth() - getWidth()
+                  - (viewport.getWorldWidth() - viewport.getMinWorldWidth()) / 2.0f,
+                  -(viewport.getWorldHeight() - viewport.getMinWorldHeight()) / 2.0f);
               break;
           }
           break;
         case 6:
-          if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
-            setSize(viewport.getWorldWidth() / 7.0f, viewport.getWorldHeight() / 7.0f);
+          if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
+            setSize(viewport.getMinWorldWidth() / 7.0f, viewport.getMinWorldHeight() / 7.0f);
           } else {
-            setSize(viewport.getWorldWidth() / 10.0f, viewport.getWorldHeight() / 10.0f);
+            setSize(viewport.getMinWorldWidth() / 10.0f, viewport.getMinWorldHeight() / 10.0f);
           }
           switch (playerNumber) {
             case 0:
-              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
-                setSize(viewport.getWorldWidth() / 5.0f, viewport.getWorldHeight() / 4.0f);
+              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
+                setSize(viewport.getMinWorldWidth() / 5.0f, viewport.getMinWorldHeight() / 4.0f);
                 setPosition(0, 0);
               } else {
-                setSize(viewport.getWorldWidth() / 3.0f, viewport.getWorldHeight() / 6.0f);
+                setSize(viewport.getMinWorldWidth() / 3.0f, viewport.getMinWorldHeight() / 6.0f);
                 setPosition(0, 0);
               }
               break;
             case 1:
-              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
-                setPosition(0, viewport.getWorldHeight() - getHeight());
+              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
+                setPosition(0, viewport.getMinWorldHeight() - getHeight());
               } else {
-                setPosition(0, viewport.getWorldHeight() / 2.0f - getHeight() / 2.0f);
+                setPosition(0, viewport.getMinWorldHeight() / 2.0f - getHeight() / 2.0f);
               }
               break;
             case 2:
-              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
-                setPosition(viewport.getWorldWidth() / 2.0f - getWidth() / 2.0f,
-                    viewport.getWorldHeight() - getHeight());
+              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
+                setPosition(viewport.getMinWorldWidth() / 2.0f - getWidth() / 2.0f,
+                    viewport.getMinWorldHeight() - getHeight());
               } else {
-                setPosition(0, viewport.getWorldHeight() - getHeight());
+                setPosition(0, viewport.getMinWorldHeight() - getHeight());
               }
               break;
             case 3:
-              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
-                setPosition(viewport.getWorldWidth() - getWidth(),
-                    viewport.getWorldHeight() - getHeight());
+              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
+                setPosition(viewport.getMinWorldWidth() - getWidth(),
+                    viewport.getMinWorldHeight() - getHeight());
               } else {
-                setPosition(viewport.getWorldWidth() - getWidth(),
-                    viewport.getWorldHeight() - getHeight());
+                setPosition(viewport.getMinWorldWidth() - getWidth(),
+                    viewport.getMinWorldHeight() - getHeight());
               }
               break;
             case 4:
-              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
-                setPosition(viewport.getWorldWidth() - getWidth(), 0);
+              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
+                setPosition(viewport.getMinWorldWidth() - getWidth(), 0);
               } else {
-                setPosition(viewport.getWorldWidth() - getWidth(),
-                    viewport.getWorldHeight() / 2.0f - getHeight() / 2.0f);
+                setPosition(viewport.getMinWorldWidth() - getWidth(),
+                    viewport.getMinWorldHeight() / 2.0f - getHeight() / 2.0f);
               }
               break;
             case 5:
-              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
-                setPosition(viewport.getWorldWidth() / 2.0f - getWidth() / 2.0f, 0);
+              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
+                setPosition(viewport.getMinWorldWidth() / 2.0f - getWidth() / 2.0f, 0);
               } else {
-                setPosition(viewport.getWorldWidth() - getWidth(), 0);
+                setPosition(viewport.getMinWorldWidth() - getWidth(), 0);
               }
               break;
           }
@@ -1091,12 +1100,12 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
 //      if (playerNumber == USER_PLAYER_NUMBER) {
 //        if (portrait) {
-//          setSize(viewport.getWorldWidth(),
-//              (viewport.getWorldHeight() - boardActor.getHeight()) / 2.0f);
+//          setSize(viewport.getMinWorldWidth(),
+//              (viewport.getMinWorldHeight() - boardActor.getHeight()) / 2.0f);
 //          setPosition(0, 0);
 //        } else {
-//          setSize(viewport.getWorldWidth() - boardActor.getWidth(),
-//              viewport.getWorldHeight() / 2.0f);
+//          setSize(viewport.getMinWorldWidth() - boardActor.getWidth(),
+//              viewport.getMinWorldHeight() / 2.0f);
 //          setPosition(boardActor.getX() + boardActor.getWidth(), 0);
 //        }
 //      } else {
@@ -1129,16 +1138,16 @@ public class GameStageScreen extends StageScreen implements EventListener {
 //        int row = (playerNumber - 1) / numberOfColumns;
 //        int col = (playerNumber - 1) % numberOfColumns;
 //        if (portrait) {
-//          setSize(viewport.getWorldWidth() / numberOfColumns,
-//              (viewport.getWorldHeight() - boardActor.getHeight()) / 2.0f / numberOfRows);
+//          setSize(viewport.getMinWorldWidth() / numberOfColumns,
+//              (viewport.getMinWorldHeight() - boardActor.getHeight()) / 2.0f / numberOfRows);
 //          setPosition(getWidth() * col,
-//              viewport.getWorldHeight() - boardActor.getHeight() - (getHeight() * (row + 1)));
+//              viewport.getMinWorldHeight() - boardActor.getHeight() - (getHeight() * (row + 1)));
 //        } else {
-//          setSize((viewport.getWorldWidth() - boardActor.getWidth())
-//              / numberOfColumns, viewport.getWorldHeight() / 2.0f / numberOfRows);
+//          setSize((viewport.getMinWorldWidth() - boardActor.getWidth())
+//              / numberOfColumns, viewport.getMinWorldHeight() / 2.0f / numberOfRows);
 //          setPosition(boardActor.getX() + boardActor.getWidth()
 //              + (getWidth() * col),
-//              viewport.getWorldHeight() - (getHeight() * (row + 1)));
+//              viewport.getMinWorldHeight() - (getHeight() * (row + 1)));
 //        }
 //        if ((game.getNumberOfPlayers() - 1) % numberOfColumns != 0
 //            && row == numberOfRows - 1) {
