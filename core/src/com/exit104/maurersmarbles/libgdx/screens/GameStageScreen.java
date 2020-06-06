@@ -30,10 +30,10 @@ import com.badlogic.gdx.utils.Align;
 import com.exit104.maurersmarbles.BoardLayout;
 import com.exit104.maurersmarbles.Card;
 import com.exit104.maurersmarbles.CardDeck;
+import com.exit104.maurersmarbles.CurvedBoardLayout;
 import com.exit104.maurersmarbles.Game;
 import com.exit104.maurersmarbles.Game.State;
 import com.exit104.maurersmarbles.GameStats;
-import com.exit104.maurersmarbles.GridBoardLayout;
 import com.exit104.maurersmarbles.InvalidPlayException;
 import com.exit104.maurersmarbles.Marble;
 import com.exit104.maurersmarbles.Play;
@@ -224,7 +224,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     game.addEventListener(this);
 
     // create the board layout and board actor
-    boardLayout = new GridBoardLayout(game.getBoard());
+    boardLayout = new CurvedBoardLayout(game.getBoard());
     boardActor = new BoardActor();
     stage.addActor(boardActor);
 
@@ -412,9 +412,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     Rectangle rectangle = boardLayout.getBoundsForMarble(
         movedMarbleGameEvent.getNewBoardIndex());
-    float toX = rectangle.getX() * boardActor.getWidth();
-    float toY = (1.0f - rectangle.getY()) * boardActor.getHeight()
-        - rectangle.getHeight() * boardActor.getHeight();
+    float toX = rectangle.getX();
+    float toY = boardActor.getHeight() - rectangle.getY() - rectangle.getHeight();
 
     MarbleActor marbleActor = marbleActors[movedMarbleGameEvent
         .getPlayerNumber()][movedMarbleGameEvent.getMarbleNumber()];
@@ -449,10 +448,9 @@ public class GameStageScreen extends StageScreen implements EventListener {
     // TODO keep logic below or update board layout to have discard pile and deck pile
     // TODO update to include random offsets in discard pile?
     Rectangle rectangleTo = boardLayout.getBoundsForDiscardPile();
-    float toX = rectangleTo.getX() * boardActor.getWidth()
-        + (rectangleTo.getWidth() * boardActor.getWidth() / 1.8f) + boardActor.getX();
-    float toY = (1.0f - rectangleTo.getY()) * boardActor.getHeight()
-        - rectangleTo.getHeight() * boardActor.getHeight() + boardActor.getY();
+    float toX = rectangleTo.getX() + (rectangleTo.getWidth() / 1.8f) + boardActor.getX();
+    float toY = boardActor.getHeight() - rectangleTo.getY() - rectangleTo.getHeight()
+        + boardActor.getY();
 
     SequenceAction sequenceAction = Actions.sequence();
 
@@ -473,8 +471,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     moveToAction.setActor(cardActor);
     parallelAction.addAction(moveToAction);
 
-    SizeToAction sizeToAction = Actions.sizeTo(rectangleTo.getWidth() * boardActor.getWidth(),
-        rectangleTo.getHeight() * boardActor.getHeight());
+    SizeToAction sizeToAction = Actions.sizeTo(rectangleTo.getWidth(), rectangleTo.getHeight());
     sizeToAction.setDuration(DURATION_PLAY_CARD);
     sizeToAction.setActor(cardActor);
     parallelAction.addAction(sizeToAction);
@@ -735,24 +732,18 @@ public class GameStageScreen extends StageScreen implements EventListener {
     // update the discard pile
     Rectangle rectangle = boardLayout.getBoundsForDiscardPile();
     for (CardActor cardActor : discardPile) {
-      cardActor.setSize(rectangle.getWidth() * boardActor.getWidth(),
-          rectangle.getHeight() * boardActor.getHeight());
-      cardActor.setPosition(rectangle.getX() * boardActor.getWidth()
-          + (rectangle.getWidth() * boardActor.getWidth() / 1.8f) + boardActor.getX(),
-          (1.0f - rectangle.getY()) * boardActor.getHeight()
-          - rectangle.getHeight() * boardActor.getHeight() + boardActor.getY());
+      cardActor.setSize(rectangle.getWidth(), rectangle.getHeight());
+      cardActor.setPosition(rectangle.getX() + (rectangle.getWidth() / 1.8f) + boardActor.getX(),
+          boardActor.getHeight() - rectangle.getY() - rectangle.getHeight() + boardActor.getY());
       cardActor.setRotation(0.0f);
     }
 
     // update the card deck (undealt cards)
     for (Card card : game.getCardDeck().getUndealtCards()) {
       CardActor cardActor = cardActors.get(card.toString());
-      cardActor.setSize(rectangle.getWidth() * boardActor.getWidth(),
-          rectangle.getHeight() * boardActor.getHeight());
-      cardActor.setPosition(rectangle.getX() * boardActor.getWidth()
-          - (rectangle.getWidth() * boardActor.getWidth() / 2.0f) + boardActor.getX(),
-          (1.0f - rectangle.getY()) * boardActor.getHeight()
-          - rectangle.getHeight() * boardActor.getHeight() + boardActor.getY());
+      cardActor.setSize(rectangle.getWidth(), rectangle.getHeight());
+      cardActor.setPosition(rectangle.getX() - (rectangle.getWidth() / 2.0f) + boardActor.getX(),
+          boardActor.getHeight() - rectangle.getY() - rectangle.getHeight() + boardActor.getY());
       cardActor.setRotation(0.0f);
       cardActor.setFaceDown(true);
     }
@@ -766,11 +757,10 @@ public class GameStageScreen extends StageScreen implements EventListener {
       for (Marble marble : player.getMarbles()) {
 
         Rectangle rectangle = boardLayout.getBoundsForMarble(marble.getBoardIndex());
-        float marbleHeight = rectangle.getHeight() * boardActor.getHeight();
         MarbleActor marbleActor = marbleActors[player.getPlayerNumber()][marble.getMarbleNumber()];
-        marbleActor.setSize(rectangle.getWidth() * boardActor.getWidth(), marbleHeight);
-        marbleActor.setPosition(rectangle.getX() * boardActor.getWidth(),
-            (1.0f - rectangle.getY()) * boardActor.getHeight() - marbleHeight);
+        marbleActor.setSize(rectangle.getWidth(), rectangle.getHeight());
+        marbleActor.setPosition(rectangle.getX(), boardActor.getHeight() - rectangle.getY()
+            - rectangle.getHeight());
         marbleActor.setOrigin(Align.center);
         marbleActor.setRotation(270.0f
             - (float) (boardLayout.getAngleForBoardIndex(marble.getBoardIndex())
@@ -893,42 +883,17 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     public void update() {
 
-      float minCardDisplayHeight = viewport.getWorldHeight() * 0.2f;
-      float portraitSize = viewport.getWorldWidth();
-      if (portraitSize > viewport.getWorldHeight() - minCardDisplayHeight) {
-        portraitSize = viewport.getWorldHeight() - minCardDisplayHeight;
-      }
+      setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
 
-      float minCardDisplayWidth = viewport.getWorldWidth() * 0.3f;
-      float landscapeSize = viewport.getWorldHeight();
-      if (landscapeSize > viewport.getWorldWidth() - minCardDisplayWidth) {
-        landscapeSize = viewport.getWorldWidth() - minCardDisplayWidth;
-      }
-
-      if (portraitSize > landscapeSize) {
-        // portrait
-        portrait = true;
-        setSize(portraitSize, portraitSize);
-        setPosition((viewport.getWorldWidth() - portraitSize) / 2.0f,
-            viewport.getWorldHeight() - getHeight());
-      } else {
-        // landscape
-        portrait = false;
-        setSize(landscapeSize, landscapeSize);
-        // board on left
-        setPosition(0, (viewport.getWorldHeight() - landscapeSize) / 2.0f);
-        // board on right
-        //setPosition(viewport.getWorldWidth() - getWidth(), 0);
-      }
+      ((CurvedBoardLayout) boardLayout).update(getWidth(), getHeight());
       boardBackgroundImage.setSize(getWidth(), getHeight());
 
       // update the board spaces
       for (int boardIndex = 0; boardIndex < boardSpaceImages.length; boardIndex++) {
         Rectangle rectangle = boardLayout.getBoundsForSpace(boardIndex);
-        float boardSpaceHeight = rectangle.getHeight() * getHeight();
-        boardSpaceImages[boardIndex].setSize(rectangle.getWidth() * getWidth(), boardSpaceHeight);
-        boardSpaceImages[boardIndex].setPosition(rectangle.getX() * getWidth(),
-            (1.0f - rectangle.getY()) * getHeight() - boardSpaceHeight);
+        boardSpaceImages[boardIndex].setSize(rectangle.getWidth(), rectangle.getHeight());
+        boardSpaceImages[boardIndex].setPosition(rectangle.getX(), getHeight() - rectangle.getY()
+            - rectangle.getHeight());
         boardSpaceImages[boardIndex].setOrigin(Align.center);
         boardSpaceImages[boardIndex].setRotation(270.0f
             - (float) (boardLayout.getAngleForBoardIndex(boardIndex) * 180.0 / Math.PI));
@@ -955,7 +920,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
           ? Color.BLACK : Color.RED));
       addActor(backImage);
       addActor(frontImage);
-      addActor(label);
+      //addActor(label);
     }
 
     public void setFaceDown(boolean faceDown) {
@@ -1046,64 +1011,141 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     public void update() {
 
-      if (playerNumber == USER_PLAYER_NUMBER) {
-        if (portrait) {
-          setSize(viewport.getWorldWidth(),
-              (viewport.getWorldHeight() - boardActor.getHeight()) / 2.0f);
-          setPosition(0, 0);
-        } else {
-          setSize(viewport.getWorldWidth() - boardActor.getWidth(),
-              viewport.getWorldHeight() / 2.0f);
-          setPosition(boardActor.getX() + boardActor.getWidth(), 0);
-        }
-      } else {
-
-        int numberOfRows = 0;
-        int numberOfColumns = 0;
-        switch (game.getNumberOfPlayers()) {
-          case 4:
-            numberOfRows = 1;
-            numberOfColumns = 3;
-            break;
-          case 6:
-            numberOfRows = 2;
-            numberOfColumns = 3;
-            break;
-          case 8:
-            numberOfRows = 2;
-            numberOfColumns = 4;
-            break;
-          case 10:
-            numberOfRows = 3;
-            numberOfColumns = 3;
-            break;
-          case 12:
-            numberOfRows = 3;
-            numberOfColumns = 4;
-            break;
-        }
-
-        int row = (playerNumber - 1) / numberOfColumns;
-        int col = (playerNumber - 1) % numberOfColumns;
-        if (portrait) {
-          setSize(viewport.getWorldWidth() / numberOfColumns,
-              (viewport.getWorldHeight() - boardActor.getHeight()) / 2.0f / numberOfRows);
-          setPosition(getWidth() * col,
-              viewport.getWorldHeight() - boardActor.getHeight() - (getHeight() * (row + 1)));
-        } else {
-          setSize((viewport.getWorldWidth() - boardActor.getWidth())
-              / numberOfColumns, viewport.getWorldHeight() / 2.0f / numberOfRows);
-          setPosition(boardActor.getX() + boardActor.getWidth()
-              + (getWidth() * col),
-              viewport.getWorldHeight() - (getHeight() * (row + 1)));
-        }
-        if ((game.getNumberOfPlayers() - 1) % numberOfColumns != 0
-            && row == numberOfRows - 1) {
-          setX(getX() + getWidth() / 2.0f);
-        }
-
+      switch (game.getNumberOfPlayers()) {
+        case 4:
+          setSize(viewport.getWorldWidth() / 3.5f, viewport.getWorldHeight() / 3.5f);
+          switch (playerNumber) {
+            case 0:
+              setPosition(0, 0);
+              break;
+            case 1:
+              setPosition(0, viewport.getWorldHeight() - getHeight());
+              break;
+            case 2:
+              setPosition(viewport.getWorldWidth() - getWidth(),
+                  viewport.getWorldHeight() - getHeight());
+              break;
+            case 3:
+              setPosition(viewport.getWorldWidth() - getWidth(), 0);
+              break;
+          }
+          break;
+        case 6:
+          if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
+            setSize(viewport.getWorldWidth() / 7.0f, viewport.getWorldHeight() / 7.0f);
+          } else {
+            setSize(viewport.getWorldWidth() / 10.0f, viewport.getWorldHeight() / 10.0f);
+          }
+          switch (playerNumber) {
+            case 0:
+              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
+                setSize(viewport.getWorldWidth() / 5.0f, viewport.getWorldHeight() / 4.0f);
+                setPosition(0, 0);
+              } else {
+                setSize(viewport.getWorldWidth() / 3.0f, viewport.getWorldHeight() / 6.0f);
+                setPosition(0, 0);
+              }
+              break;
+            case 1:
+              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
+                setPosition(0, viewport.getWorldHeight() - getHeight());
+              } else {
+                setPosition(0, viewport.getWorldHeight() / 2.0f - getHeight() / 2.0f);
+              }
+              break;
+            case 2:
+              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
+                setPosition(viewport.getWorldWidth() / 2.0f - getWidth() / 2.0f,
+                    viewport.getWorldHeight() - getHeight());
+              } else {
+                setPosition(0, viewport.getWorldHeight() - getHeight());
+              }
+              break;
+            case 3:
+              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
+                setPosition(viewport.getWorldWidth() - getWidth(),
+                    viewport.getWorldHeight() - getHeight());
+              } else {
+                setPosition(viewport.getWorldWidth() - getWidth(),
+                    viewport.getWorldHeight() - getHeight());
+              }
+              break;
+            case 4:
+              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
+                setPosition(viewport.getWorldWidth() - getWidth(), 0);
+              } else {
+                setPosition(viewport.getWorldWidth() - getWidth(),
+                    viewport.getWorldHeight() / 2.0f - getHeight() / 2.0f);
+              }
+              break;
+            case 5:
+              if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
+                setPosition(viewport.getWorldWidth() / 2.0f - getWidth() / 2.0f, 0);
+              } else {
+                setPosition(viewport.getWorldWidth() - getWidth(), 0);
+              }
+              break;
+          }
+          break;
       }
 
+//      if (playerNumber == USER_PLAYER_NUMBER) {
+//        if (portrait) {
+//          setSize(viewport.getWorldWidth(),
+//              (viewport.getWorldHeight() - boardActor.getHeight()) / 2.0f);
+//          setPosition(0, 0);
+//        } else {
+//          setSize(viewport.getWorldWidth() - boardActor.getWidth(),
+//              viewport.getWorldHeight() / 2.0f);
+//          setPosition(boardActor.getX() + boardActor.getWidth(), 0);
+//        }
+//      } else {
+//
+//        int numberOfRows = 0;
+//        int numberOfColumns = 0;
+//        switch (game.getNumberOfPlayers()) {
+//          case 4:
+//            numberOfRows = 1;
+//            numberOfColumns = 3;
+//            break;
+//          case 6:
+//            numberOfRows = 2;
+//            numberOfColumns = 3;
+//            break;
+//          case 8:
+//            numberOfRows = 2;
+//            numberOfColumns = 4;
+//            break;
+//          case 10:
+//            numberOfRows = 3;
+//            numberOfColumns = 3;
+//            break;
+//          case 12:
+//            numberOfRows = 3;
+//            numberOfColumns = 4;
+//            break;
+//        }
+//
+//        int row = (playerNumber - 1) / numberOfColumns;
+//        int col = (playerNumber - 1) % numberOfColumns;
+//        if (portrait) {
+//          setSize(viewport.getWorldWidth() / numberOfColumns,
+//              (viewport.getWorldHeight() - boardActor.getHeight()) / 2.0f / numberOfRows);
+//          setPosition(getWidth() * col,
+//              viewport.getWorldHeight() - boardActor.getHeight() - (getHeight() * (row + 1)));
+//        } else {
+//          setSize((viewport.getWorldWidth() - boardActor.getWidth())
+//              / numberOfColumns, viewport.getWorldHeight() / 2.0f / numberOfRows);
+//          setPosition(boardActor.getX() + boardActor.getWidth()
+//              + (getWidth() * col),
+//              viewport.getWorldHeight() - (getHeight() * (row + 1)));
+//        }
+//        if ((game.getNumberOfPlayers() - 1) % numberOfColumns != 0
+//            && row == numberOfRows - 1) {
+//          setX(getX() + getWidth() / 2.0f);
+//        }
+//
+//      }
       backgroundImage.setSize(getWidth(), getHeight());
 
       nameLabel.setY(getHeight() - nameLabel.getHeight());
@@ -1119,7 +1161,6 @@ public class GameStageScreen extends StageScreen implements EventListener {
     @Override
     public void setAvailablePlays(Set<Play> plays) {
       super.setAvailablePlays(plays);
-      //setSelectedPlay(plays.iterator().next());
       this.plays = plays;
       waitForUserInput = true;
     }
