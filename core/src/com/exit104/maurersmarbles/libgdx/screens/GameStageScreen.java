@@ -30,7 +30,6 @@ import com.badlogic.gdx.utils.Align;
 import com.exit104.maurersmarbles.BoardLayout;
 import com.exit104.maurersmarbles.Card;
 import com.exit104.maurersmarbles.CardDeck;
-import com.exit104.maurersmarbles.CurvedBoardLayout;
 import com.exit104.maurersmarbles.Game;
 import com.exit104.maurersmarbles.Game.State;
 import com.exit104.maurersmarbles.GameStats;
@@ -40,6 +39,7 @@ import com.exit104.maurersmarbles.Play;
 import com.exit104.maurersmarbles.PlaySelector;
 import com.exit104.maurersmarbles.Player;
 import com.exit104.maurersmarbles.Rectangle;
+import com.exit104.maurersmarbles.RectangleBoardLayout;
 import com.exit104.maurersmarbles.ScoreBasedPlaySelector;
 import com.exit104.maurersmarbles.UserPlay;
 import com.exit104.maurersmarbles.event.CannotPlayGameEvent;
@@ -224,7 +224,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     game.addEventListener(this);
 
     // create the board layout and board actor
-    boardLayout = new CurvedBoardLayout(game.getBoard());
+    boardLayout = new RectangleBoardLayout(game.getBoard());
     boardActor = new BoardActor();
     stage.addActor(boardActor);
 
@@ -883,11 +883,11 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     public void update() {
 
-      setSize(viewport.getMinWorldWidth() * 0.98f, viewport.getMinWorldHeight() * 0.98f);
-      setPosition((viewport.getMinWorldWidth() - getWidth()) / 2.0f,
-          (viewport.getMinWorldHeight() - getHeight()) / 2.0f);
+      setSize(viewport.getWorldWidth() * 0.98f, viewport.getWorldHeight() * 0.98f);
+      setPosition((viewport.getWorldWidth() - getWidth()) / 2.0f,
+          (viewport.getWorldHeight() - getHeight()) / 2.0f);
 
-      ((CurvedBoardLayout) boardLayout).update(getWidth(), getHeight());
+      ((RectangleBoardLayout) boardLayout).update(getWidth(), getHeight());
       boardBackgroundImage.setSize(getWidth(), getHeight());
 
       // update the board spaces
@@ -1014,147 +1014,39 @@ public class GameStageScreen extends StageScreen implements EventListener {
     public void update() {
 
       switch (game.getNumberOfPlayers()) {
+
         case 4:
-          setSize(viewport.getWorldWidth() / 3.5f, viewport.getWorldHeight() / 3.5f);
+
+          Rectangle rectangle1 = boardLayout.getBoundsForBoardIndex(
+              game.getBoard().getHomeMinBoardIndex(game.getNextPlayerNumber(playerNumber)));
+          Rectangle rectangle2 = boardLayout.getBoundsForBoardIndex(
+              game.getBoard().getHomeMinBoardIndex(playerNumber));
+          setSize(Math.abs(rectangle1.getX() - rectangle2.getX()), Math.abs(rectangle1.getY()
+              - rectangle2.getY()));
+
           switch (playerNumber) {
             case 0:
-              setPosition(-(viewport.getWorldWidth() - viewport.getMinWorldWidth()) / 2.0f,
-                  -(viewport.getWorldHeight() - viewport.getMinWorldHeight()) / 2.0f);
+              setPosition(rectangle1.getX() + boardActor.getX(), rectangle1.getY()
+                  + boardActor.getY() - getHeight());
               break;
             case 1:
-              setPosition(-(viewport.getWorldWidth() - viewport.getMinWorldWidth()) / 2.0f,
-                  viewport.getWorldHeight() - getHeight()
-                  - (viewport.getWorldHeight() - viewport.getMinWorldHeight()) / 2.0f);
+              setPosition(rectangle1.getX() + boardActor.getX() - getWidth(),
+                  (boardActor.getHeight() - rectangle1.getY()) + boardActor.getY() - getHeight());
               break;
             case 2:
-              setPosition(viewport.getWorldWidth() - getWidth()
-                  - (viewport.getWorldWidth() - viewport.getMinWorldWidth()) / 2.0f,
-                  viewport.getMinWorldHeight() - getHeight()
-                  + (viewport.getWorldHeight() - viewport.getMinWorldHeight()) / 2.0f);
+              setPosition(rectangle2.getX() + boardActor.getX() + rectangle2.getWidth(),
+                  (boardActor.getHeight() - rectangle2.getY()) + boardActor.getY() - getHeight());
               break;
             case 3:
-              setPosition(viewport.getWorldWidth() - getWidth()
-                  - (viewport.getWorldWidth() - viewport.getMinWorldWidth()) / 2.0f,
-                  -(viewport.getWorldHeight() - viewport.getMinWorldHeight()) / 2.0f);
+              setPosition(rectangle1.getX() + boardActor.getX() + rectangle1.getWidth(),
+                  (boardActor.getHeight() - rectangle1.getY()) + boardActor.getY()
+                  - rectangle1.getHeight());
               break;
           }
           break;
-        case 6:
-          if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
-            setSize(viewport.getMinWorldWidth() / 7.0f, viewport.getMinWorldHeight() / 7.0f);
-          } else {
-            setSize(viewport.getMinWorldWidth() / 10.0f, viewport.getMinWorldHeight() / 10.0f);
-          }
-          switch (playerNumber) {
-            case 0:
-              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
-                setSize(viewport.getMinWorldWidth() / 5.0f, viewport.getMinWorldHeight() / 4.0f);
-                setPosition(0, 0);
-              } else {
-                setSize(viewport.getMinWorldWidth() / 3.0f, viewport.getMinWorldHeight() / 6.0f);
-                setPosition(0, 0);
-              }
-              break;
-            case 1:
-              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
-                setPosition(0, viewport.getMinWorldHeight() - getHeight());
-              } else {
-                setPosition(0, viewport.getMinWorldHeight() / 2.0f - getHeight() / 2.0f);
-              }
-              break;
-            case 2:
-              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
-                setPosition(viewport.getMinWorldWidth() / 2.0f - getWidth() / 2.0f,
-                    viewport.getMinWorldHeight() - getHeight());
-              } else {
-                setPosition(0, viewport.getMinWorldHeight() - getHeight());
-              }
-              break;
-            case 3:
-              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
-                setPosition(viewport.getMinWorldWidth() - getWidth(),
-                    viewport.getMinWorldHeight() - getHeight());
-              } else {
-                setPosition(viewport.getMinWorldWidth() - getWidth(),
-                    viewport.getMinWorldHeight() - getHeight());
-              }
-              break;
-            case 4:
-              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
-                setPosition(viewport.getMinWorldWidth() - getWidth(), 0);
-              } else {
-                setPosition(viewport.getMinWorldWidth() - getWidth(),
-                    viewport.getMinWorldHeight() / 2.0f - getHeight() / 2.0f);
-              }
-              break;
-            case 5:
-              if (viewport.getMinWorldWidth() > viewport.getMinWorldHeight()) {
-                setPosition(viewport.getMinWorldWidth() / 2.0f - getWidth() / 2.0f, 0);
-              } else {
-                setPosition(viewport.getMinWorldWidth() - getWidth(), 0);
-              }
-              break;
-          }
-          break;
+
       }
 
-//      if (playerNumber == USER_PLAYER_NUMBER) {
-//        if (portrait) {
-//          setSize(viewport.getMinWorldWidth(),
-//              (viewport.getMinWorldHeight() - boardActor.getHeight()) / 2.0f);
-//          setPosition(0, 0);
-//        } else {
-//          setSize(viewport.getMinWorldWidth() - boardActor.getWidth(),
-//              viewport.getMinWorldHeight() / 2.0f);
-//          setPosition(boardActor.getX() + boardActor.getWidth(), 0);
-//        }
-//      } else {
-//
-//        int numberOfRows = 0;
-//        int numberOfColumns = 0;
-//        switch (game.getNumberOfPlayers()) {
-//          case 4:
-//            numberOfRows = 1;
-//            numberOfColumns = 3;
-//            break;
-//          case 6:
-//            numberOfRows = 2;
-//            numberOfColumns = 3;
-//            break;
-//          case 8:
-//            numberOfRows = 2;
-//            numberOfColumns = 4;
-//            break;
-//          case 10:
-//            numberOfRows = 3;
-//            numberOfColumns = 3;
-//            break;
-//          case 12:
-//            numberOfRows = 3;
-//            numberOfColumns = 4;
-//            break;
-//        }
-//
-//        int row = (playerNumber - 1) / numberOfColumns;
-//        int col = (playerNumber - 1) % numberOfColumns;
-//        if (portrait) {
-//          setSize(viewport.getMinWorldWidth() / numberOfColumns,
-//              (viewport.getMinWorldHeight() - boardActor.getHeight()) / 2.0f / numberOfRows);
-//          setPosition(getWidth() * col,
-//              viewport.getMinWorldHeight() - boardActor.getHeight() - (getHeight() * (row + 1)));
-//        } else {
-//          setSize((viewport.getMinWorldWidth() - boardActor.getWidth())
-//              / numberOfColumns, viewport.getMinWorldHeight() / 2.0f / numberOfRows);
-//          setPosition(boardActor.getX() + boardActor.getWidth()
-//              + (getWidth() * col),
-//              viewport.getMinWorldHeight() - (getHeight() * (row + 1)));
-//        }
-//        if ((game.getNumberOfPlayers() - 1) % numberOfColumns != 0
-//            && row == numberOfRows - 1) {
-//          setX(getX() + getWidth() / 2.0f);
-//        }
-//
-//      }
       backgroundImage.setSize(getWidth(), getHeight());
 
       nameLabel.setY(getHeight() - nameLabel.getHeight());
