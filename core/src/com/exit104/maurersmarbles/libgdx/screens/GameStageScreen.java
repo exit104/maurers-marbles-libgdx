@@ -427,9 +427,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
     moveToAction.setActor(marbleActor);
     parallelAction.addAction(moveToAction);
 
-    RotateToAction rotateToAction = Actions.rotateTo(270.0f
-        - (float) (boardLayout.getAngleForBoardIndex(
-            movedMarbleGameEvent.getNewBoardIndex()) * 180.0 / Math.PI));
+    RotateToAction rotateToAction = Actions.rotateTo((boardLayout.getAngleForBoardIndex(
+        movedMarbleGameEvent.getNewBoardIndex()) * 180.0f / (float) Math.PI) - 90.0f);
     rotateToAction.setUseShortestDirection(true);
     rotateToAction.setDuration(DURATION_MOVE_MARBLE);
     rotateToAction.setActor(marbleActor);
@@ -762,9 +761,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
         marbleActor.setPosition(rectangle.getX(), boardActor.getHeight() - rectangle.getY()
             - rectangle.getHeight());
         marbleActor.setOrigin(Align.center);
-        marbleActor.setRotation(270.0f
-            - (float) (boardLayout.getAngleForBoardIndex(marble.getBoardIndex())
-            * 180.0 / Math.PI));
+        marbleActor.setRotation((boardLayout.getAngleForBoardIndex(marble.getBoardIndex())
+            * 180.0f / (float) Math.PI) - 90.0f);
 
       }
 
@@ -897,8 +895,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
         boardSpaceImages[boardIndex].setPosition(rectangle.getX(), getHeight() - rectangle.getY()
             - rectangle.getHeight());
         boardSpaceImages[boardIndex].setOrigin(Align.center);
-        boardSpaceImages[boardIndex].setRotation(270.0f
-            - (float) (boardLayout.getAngleForBoardIndex(boardIndex) * 180.0 / Math.PI));
+        boardSpaceImages[boardIndex].setRotation((boardLayout.getAngleForBoardIndex(boardIndex)
+            * 180.0f / (float) Math.PI) - 90.0f);
       }
 
     }
