@@ -447,7 +447,12 @@ public class GameStageScreen extends StageScreen implements EventListener {
     // TODO keep logic below or update board layout to have discard pile and deck pile
     // TODO update to include random offsets in discard pile?
     Rectangle rectangleTo = boardLayout.getBoundsForDiscardPile();
-    float toX = rectangleTo.getX() + (rectangleTo.getWidth() / 1.8f) + boardActor.getX();
+    float toX;
+    if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
+      toX = rectangleTo.getX() + rectangleTo.getWidth() + boardActor.getX();
+    } else {
+      toX = rectangleTo.getX() + (rectangleTo.getWidth() / 1.8f) + boardActor.getX();
+    }
     float toY = boardActor.getHeight() - rectangleTo.getY() - rectangleTo.getHeight()
         + boardActor.getY();
 
@@ -715,8 +720,8 @@ public class GameStageScreen extends StageScreen implements EventListener {
         float x = playerActors[playerNumber].getX()
             + (playerActors[playerNumber].getWidth() / 2.0f) - (playerCardsWidth / 2.0f)
             + (cardNumber * cardActor.getWidth() * (1.0f - CARD_OVERLAP));
-        float y = playerActors[playerNumber].getY() + playerActors[playerNumber].getHeight()
-            - (playerActors[playerNumber].nameLabel.getHeight()) - cardHeight;
+        float y = playerActors[playerNumber].getY()
+            + (playerActors[playerNumber].getHeight() - cardActor.getHeight()) / 2.0f;
         cardActor.setPosition(x, y);
 
         cardActor.setOrigin(Align.center);
@@ -732,8 +737,14 @@ public class GameStageScreen extends StageScreen implements EventListener {
     Rectangle rectangle = boardLayout.getBoundsForDiscardPile();
     for (CardActor cardActor : discardPile) {
       cardActor.setSize(rectangle.getWidth(), rectangle.getHeight());
-      cardActor.setPosition(rectangle.getX() + (rectangle.getWidth() / 1.8f) + boardActor.getX(),
-          boardActor.getHeight() - rectangle.getY() - rectangle.getHeight() + boardActor.getY());
+      float x;
+      if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
+        x = rectangle.getX() + rectangle.getWidth() + boardActor.getX();
+      } else {
+        x = rectangle.getX() + (rectangle.getWidth() / 1.8f) + boardActor.getX();
+      }
+      cardActor.setPosition(x, boardActor.getHeight() - rectangle.getY() - rectangle.getHeight()
+          + boardActor.getY());
       cardActor.setRotation(0.0f);
     }
 
@@ -741,8 +752,14 @@ public class GameStageScreen extends StageScreen implements EventListener {
     for (Card card : game.getCardDeck().getUndealtCards()) {
       CardActor cardActor = cardActors.get(card.toString());
       cardActor.setSize(rectangle.getWidth(), rectangle.getHeight());
-      cardActor.setPosition(rectangle.getX() - (rectangle.getWidth() / 2.0f) + boardActor.getX(),
-          boardActor.getHeight() - rectangle.getY() - rectangle.getHeight() + boardActor.getY());
+      float x;
+      if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
+        x = rectangle.getX() - rectangle.getWidth() + boardActor.getX();
+      } else {
+        x = rectangle.getX() - (rectangle.getWidth() / 1.8f) + boardActor.getX();
+      }
+      cardActor.setPosition(x, boardActor.getHeight() - rectangle.getY() - rectangle.getHeight()
+          + boardActor.getY());
       cardActor.setRotation(0.0f);
       cardActor.setFaceDown(true);
     }
@@ -1011,36 +1028,83 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     public void update() {
 
+      Rectangle rectangle1;
+      Rectangle rectangle2;
+
       switch (game.getNumberOfPlayers()) {
 
         case 4:
 
-          Rectangle rectangle1 = boardLayout.getBoundsForBoardIndex(
-              game.getBoard().getHomeMinBoardIndex(game.getNextPlayerNumber(playerNumber)));
-          Rectangle rectangle2 = boardLayout.getBoundsForBoardIndex(
-              game.getBoard().getHomeMinBoardIndex(playerNumber));
-          setSize(Math.abs(rectangle1.getX() - rectangle2.getX()), Math.abs(rectangle1.getY()
-              - rectangle2.getY()));
+          rectangle1 = boardLayout.getBoundsForBoardIndex(
+              game.getBoard().getHomeMinBoardIndex(game.getNextPlayerNumber(playerNumber)) + 1);
+          rectangle2 = boardLayout.getBoundsForBoardIndex(
+              game.getBoard().getHomeEntryBoardIndex(playerNumber) + 1);
 
           switch (playerNumber) {
             case 0:
+              setSize(Math.abs(rectangle1.getX() - rectangle2.getX()), Math.abs(rectangle1.getY()
+                  - rectangle2.getY() + rectangle2.getHeight()));
               setPosition(rectangle1.getX() + boardActor.getX(), rectangle1.getY()
                   + boardActor.getY() - getHeight());
               break;
             case 1:
-              setPosition(rectangle1.getX() + boardActor.getX() - getWidth(),
-                  (boardActor.getHeight() - rectangle1.getY()) + boardActor.getY() - getHeight());
+              setSize(playerActors[0].getWidth(), playerActors[0].getHeight());
+              setPosition(playerActors[0].getX(), viewport.getWorldHeight()
+                  - playerActors[0].getY() - getHeight());
               break;
             case 2:
-              setPosition(rectangle2.getX() + boardActor.getX() + rectangle2.getWidth(),
-                  (boardActor.getHeight() - rectangle2.getY()) + boardActor.getY() - getHeight());
+              setSize(playerActors[0].getWidth(), playerActors[0].getHeight());
+              setPosition(viewport.getWorldWidth() - playerActors[0].getX() - getWidth(),
+                  viewport.getWorldHeight() - playerActors[0].getY() - getHeight());
               break;
             case 3:
-              setPosition(rectangle1.getX() + boardActor.getX() + rectangle1.getWidth(),
-                  (boardActor.getHeight() - rectangle1.getY()) + boardActor.getY()
-                  - rectangle1.getHeight());
+              setSize(playerActors[0].getWidth(), playerActors[0].getHeight());
+              setPosition(viewport.getWorldWidth() - playerActors[0].getX() - getWidth(),
+                  playerActors[0].getY());
               break;
           }
+          break;
+
+        case 6:
+
+          rectangle1 = boardLayout.getBoundsForBoardIndex(
+              game.getBoard().getHomeMinBoardIndex(playerNumber));
+          rectangle2 = boardLayout.getBoundsForBoardIndex(
+              game.getBoard().getHomeMaxBoardIndex(game.getPreviousPlayerNumber(playerNumber)));
+
+          switch (playerNumber) {
+            case 0:
+              setSize(Math.abs(rectangle1.getX() - rectangle2.getX() + rectangle1.getWidth()),
+                  Math.abs(rectangle1.getY() - rectangle2.getY() + rectangle2.getHeight()));
+              setPosition(rectangle1.getX() + boardActor.getX() + rectangle1.getWidth(),
+                  boardActor.getHeight() - rectangle1.getY() - boardActor.getY());
+              break;
+            default:
+              setPosition(rectangle1.getX(), boardActor.getHeight() - rectangle1.getY()
+                  - boardActor.getY());
+              break;
+          }
+
+          break;
+
+        case 8:
+        case 10:
+        case 12:
+
+          switch (playerNumber) {
+            case 0:
+              setSize(boardActor.getWidth() / 4.0f, boardActor.getHeight() / 5.0f);
+              setPosition(boardActor.getX() + boardActor.getWidth() / 2.0f - getWidth() / 2.0f,
+                  boardActor.getHeight() - boardActor.getHeight() / 2.0f - getHeight());
+              break;
+            default:
+              rectangle1 = boardLayout.getBoundsForBoardIndex(
+                  game.getBoard().getHomeMinBoardIndex(playerNumber));
+              setPosition(rectangle1.getX(), boardActor.getHeight() - rectangle1.getY()
+                  - boardActor.getY());
+              break;
+          }
+
           break;
 
       }
