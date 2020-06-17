@@ -30,6 +30,7 @@ import com.badlogic.gdx.utils.Align;
 import com.exit104.maurersmarbles.BoardLayout;
 import com.exit104.maurersmarbles.Card;
 import com.exit104.maurersmarbles.CardDeck;
+import com.exit104.maurersmarbles.CurvedBoardLayout;
 import com.exit104.maurersmarbles.Game;
 import com.exit104.maurersmarbles.Game.State;
 import com.exit104.maurersmarbles.GameStats;
@@ -39,7 +40,6 @@ import com.exit104.maurersmarbles.Play;
 import com.exit104.maurersmarbles.PlaySelector;
 import com.exit104.maurersmarbles.Player;
 import com.exit104.maurersmarbles.Rectangle;
-import com.exit104.maurersmarbles.RectangleBoardLayout;
 import com.exit104.maurersmarbles.ScoreBasedPlaySelector;
 import com.exit104.maurersmarbles.UserPlay;
 import com.exit104.maurersmarbles.event.CannotPlayGameEvent;
@@ -224,7 +224,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     game.addEventListener(this);
 
     // create the board layout and board actor
-    boardLayout = new RectangleBoardLayout(game.getBoard());
+    boardLayout = new CurvedBoardLayout(game.getBoard());
     boardActor = new BoardActor();
     stage.addActor(boardActor);
 
@@ -447,12 +447,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
     // TODO keep logic below or update board layout to have discard pile and deck pile
     // TODO update to include random offsets in discard pile?
     Rectangle rectangleTo = boardLayout.getBoundsForDiscardPile();
-    float toX;
-    if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
-      toX = rectangleTo.getX() + rectangleTo.getWidth() + boardActor.getX();
-    } else {
-      toX = rectangleTo.getX() + (rectangleTo.getWidth() / 1.8f) + boardActor.getX();
-    }
+    float toX = rectangleTo.getX() + boardActor.getX();
     float toY = boardActor.getHeight() - rectangleTo.getY() - rectangleTo.getHeight()
         + boardActor.getY();
 
@@ -737,27 +732,18 @@ public class GameStageScreen extends StageScreen implements EventListener {
     Rectangle rectangle = boardLayout.getBoundsForDiscardPile();
     for (CardActor cardActor : discardPile) {
       cardActor.setSize(rectangle.getWidth(), rectangle.getHeight());
-      float x;
-      if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
-        x = rectangle.getX() + rectangle.getWidth() + boardActor.getX();
-      } else {
-        x = rectangle.getX() + (rectangle.getWidth() / 1.8f) + boardActor.getX();
-      }
+      float x = rectangle.getX() + boardActor.getX();
       cardActor.setPosition(x, boardActor.getHeight() - rectangle.getY() - rectangle.getHeight()
           + boardActor.getY());
       cardActor.setRotation(0.0f);
     }
 
     // update the card deck (undealt cards)
+    rectangle = boardLayout.getBoundsForCardDeck();
     for (Card card : game.getCardDeck().getUndealtCards()) {
       CardActor cardActor = cardActors.get(card.toString());
       cardActor.setSize(rectangle.getWidth(), rectangle.getHeight());
-      float x;
-      if (viewport.getWorldWidth() > viewport.getWorldHeight()) {
-        x = rectangle.getX() - rectangle.getWidth() + boardActor.getX();
-      } else {
-        x = rectangle.getX() - (rectangle.getWidth() / 1.8f) + boardActor.getX();
-      }
+      float x = rectangle.getX() + boardActor.getX();
       cardActor.setPosition(x, boardActor.getHeight() - rectangle.getY() - rectangle.getHeight()
           + boardActor.getY());
       cardActor.setRotation(0.0f);
@@ -870,7 +856,7 @@ public class GameStageScreen extends StageScreen implements EventListener {
       // create the image for the board background
       boardBackgroundImage = new Image(maurersMarblesGame.getAssetManager().get(
           "board_background.png", Texture.class));
-      boardBackgroundImage.setColor(0.75f, 0.75f, 0.75f, 1);
+      boardBackgroundImage.setColor(0.65f, 0.65f, 0.65f, 1);
       addActor(boardBackgroundImage);
 
       // create the images for the board spaces
@@ -898,11 +884,12 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     public void update() {
 
-      setSize(viewport.getWorldWidth() * 0.98f, viewport.getWorldHeight() * 0.98f);
+      setSize(viewport.getWorldWidth() - (viewport.getWorldHeight() * 0.02f),
+          viewport.getWorldHeight() * 0.98f);
       setPosition((viewport.getWorldWidth() - getWidth()) / 2.0f,
           (viewport.getWorldHeight() - getHeight()) / 2.0f);
 
-      ((RectangleBoardLayout) boardLayout).update(getWidth(), getHeight());
+      ((CurvedBoardLayout) boardLayout).update(getWidth(), getHeight());
       boardBackgroundImage.setSize(getWidth(), getHeight());
 
       // update the board spaces
@@ -1028,85 +1015,15 @@ public class GameStageScreen extends StageScreen implements EventListener {
 
     public void update() {
 
-      Rectangle rectangle1;
-      Rectangle rectangle2;
-
-      switch (game.getNumberOfPlayers()) {
-
-        case 4:
-
-          rectangle1 = boardLayout.getBoundsForBoardIndex(
-              game.getBoard().getHomeMinBoardIndex(game.getNextPlayerNumber(playerNumber)) + 1);
-          rectangle2 = boardLayout.getBoundsForBoardIndex(
-              game.getBoard().getHomeEntryBoardIndex(playerNumber) + 1);
-
-          switch (playerNumber) {
-            case 0:
-              setSize(Math.abs(rectangle1.getX() - rectangle2.getX()), Math.abs(rectangle1.getY()
-                  - rectangle2.getY() + rectangle2.getHeight()));
-              setPosition(rectangle1.getX() + boardActor.getX(), rectangle1.getY()
-                  + boardActor.getY() - getHeight());
-              break;
-            case 1:
-              setSize(playerActors[0].getWidth(), playerActors[0].getHeight());
-              setPosition(playerActors[0].getX(), viewport.getWorldHeight()
-                  - playerActors[0].getY() - getHeight());
-              break;
-            case 2:
-              setSize(playerActors[0].getWidth(), playerActors[0].getHeight());
-              setPosition(viewport.getWorldWidth() - playerActors[0].getX() - getWidth(),
-                  viewport.getWorldHeight() - playerActors[0].getY() - getHeight());
-              break;
-            case 3:
-              setSize(playerActors[0].getWidth(), playerActors[0].getHeight());
-              setPosition(viewport.getWorldWidth() - playerActors[0].getX() - getWidth(),
-                  playerActors[0].getY());
-              break;
-          }
-          break;
-
-        case 6:
-
-          rectangle1 = boardLayout.getBoundsForBoardIndex(
-              game.getBoard().getHomeMinBoardIndex(playerNumber));
-          rectangle2 = boardLayout.getBoundsForBoardIndex(
-              game.getBoard().getHomeMaxBoardIndex(game.getPreviousPlayerNumber(playerNumber)));
-
-          switch (playerNumber) {
-            case 0:
-              setSize(Math.abs(rectangle1.getX() - rectangle2.getX() + rectangle1.getWidth()),
-                  Math.abs(rectangle1.getY() - rectangle2.getY() + rectangle2.getHeight()));
-              setPosition(rectangle1.getX() + boardActor.getX() + rectangle1.getWidth(),
-                  boardActor.getHeight() - rectangle1.getY() - boardActor.getY());
-              break;
-            default:
-              setPosition(rectangle1.getX(), boardActor.getHeight() - rectangle1.getY()
-                  - boardActor.getY());
-              break;
-          }
-
-          break;
-
-        case 8:
-        case 10:
-        case 12:
-
-          switch (playerNumber) {
-            case 0:
-              setSize(boardActor.getWidth() / 4.0f, boardActor.getHeight() / 5.0f);
-              setPosition(boardActor.getX() + boardActor.getWidth() / 2.0f - getWidth() / 2.0f,
-                  boardActor.getHeight() - boardActor.getHeight() / 2.0f - getHeight());
-              break;
-            default:
-              rectangle1 = boardLayout.getBoundsForBoardIndex(
-                  game.getBoard().getHomeMinBoardIndex(playerNumber));
-              setPosition(rectangle1.getX(), boardActor.getHeight() - rectangle1.getY()
-                  - boardActor.getY());
-              break;
-          }
-
-          break;
-
+      if (playerNumber == USER_PLAYER_NUMBER) {
+        setSize(viewport.getWorldWidth() / 3.5f, viewport.getWorldHeight() / 5.0f);
+        setPosition(viewport.getWorldWidth() / 2.0f - getWidth() / 2.0f,
+            viewport.getWorldHeight() / 2.0f - getHeight() / 2.0f);
+      } else {
+        Rectangle rectangle = boardLayout.getBoundsForBoardIndex(
+            game.getBoard().getHomeMinBoardIndex(playerNumber));
+        setPosition(rectangle.getX(), boardActor.getHeight() - rectangle.getY()
+            - boardActor.getY());
       }
 
       backgroundImage.setSize(getWidth(), getHeight());
