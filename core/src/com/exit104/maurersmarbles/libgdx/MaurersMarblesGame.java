@@ -7,6 +7,9 @@ package com.exit104.maurersmarbles.libgdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 
 import com.exit104.maurersmarbles.libgdx.screens.SplashStageScreen;
 
@@ -36,6 +39,12 @@ public class MaurersMarblesGame extends com.badlogic.gdx.Game {
    */
   public AssetManager getAssetManager() {
     return assetManager;
+  }
+
+  public Image createImage(String fileName) {
+    TextureRegion textureRegion = new TextureRegion(assetManager.get(fileName, Texture.class));
+    textureRegion.flip(false, true);
+    return new Image(textureRegion);
   }
 
   @Override

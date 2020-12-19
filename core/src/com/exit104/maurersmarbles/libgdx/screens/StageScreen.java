@@ -10,6 +10,8 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 import com.exit104.maurersmarbles.libgdx.MaurersMarblesGame;
 
@@ -23,10 +25,6 @@ import com.exit104.maurersmarbles.libgdx.MaurersMarblesGame;
 public abstract class StageScreen implements Screen {
 
   /**
-   * The viewport for the stage.
-   */
-  protected transient ExtendViewport viewport;
-  /**
    * The game for this screen.
    */
   protected final transient MaurersMarblesGame maurersMarblesGame;
@@ -34,6 +32,10 @@ public abstract class StageScreen implements Screen {
    * The stage used to animate the actors.
    */
   protected final transient Stage stage;
+  /**
+   * The viewport for the stage.
+   */
+  protected final transient Viewport viewport;
 
   /**
    * Creates a new StageScreen.
@@ -45,10 +47,13 @@ public abstract class StageScreen implements Screen {
     // TODO Preconditons?
     this.maurersMarblesGame = maurersMarblesGame;
 
-    viewport = new ExtendViewport(1280, 720, 1440, 720);
+    viewport = new ScreenViewport();
+    //viewport = new ExtendViewport(800, 480, 854, 600);
+    //viewport = new ExtendViewport(1280, 720, 1440, 720);
+    //viewport = new ExtendViewport(720, 1280, 720, 1440);
     stage = new Stage(viewport);
 
-    ((OrthographicCamera) stage.getCamera()).setToOrtho(false, viewport.getWorldWidth(),
+    ((OrthographicCamera) stage.getCamera()).setToOrtho(true, viewport.getWorldWidth(),
         viewport.getWorldHeight());
 
   }
@@ -67,7 +72,7 @@ public abstract class StageScreen implements Screen {
   @Override
   public void resize(int width, int height) {
     stage.getViewport().update(width, height);
-    ((OrthographicCamera) stage.getCamera()).setToOrtho(false, viewport.getWorldWidth(),
+    ((OrthographicCamera) stage.getCamera()).setToOrtho(true, viewport.getWorldWidth(),
         viewport.getWorldHeight());
   }
 
